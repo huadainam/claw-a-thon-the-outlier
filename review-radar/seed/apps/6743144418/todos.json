@@ -1,52 +1,57 @@
 [
   {
-    "id": "35506282-0650-431e-b7f5-d23d43a5880e",
-    "topic": "Lỗi roll tướng xoay vòng",
+    "id": "c0f7eeb9-4d91-4214-8f6a-1b3d8ebf081b",
+    "topic": "Lỗi gacha/roll tướng",
     "severity": "low",
-    "mention_count": 1,
+    "mention_count": 2,
     "sample_reviews": [
-      "Làm cho lắm trò Cờ thì Roll k ra tướng Xoay Vòng K lấy dc tướng nhiều người phản ánh cũng méo tiếp thu để chỉnh lại rác chơi mất thơi gian"
+      "Làm cho lắm trò Cờ thì Roll k ra tướng Xoay Vòng K lấy dc tướng nhiều người phản ánh cũng méo tiếp thu để chỉnh lại rác chơi mất thơi gian",
+      "Tui đi khảo cổ mở cuộn văn vật hoài ko ra (đã vuốt trái phải điên cuồng)."
     ],
     "sources": [
       "app_store"
     ],
-    "first_seen": "2026-06-09T15:25:54-07:00",
+    "first_seen": "2026-05-26T23:12:29-07:00",
     "last_seen": "2026-06-09T15:25:54-07:00",
     "status": "open"
   },
   {
-    "id": "c81eb209-e54f-43dd-8819-b75b3d92c6c9",
-    "topic": "Bị thoát ra khi vào game",
-    "severity": "low",
-    "mention_count": 1,
+    "id": "52c3a489-8681-4bbd-91bc-e57cb9a237bc",
+    "topic": "Crash/đơ app",
+    "severity": "medium",
+    "mention_count": 4,
     "sample_reviews": [
-      "Sao chưa vào đã bị thoát ra rồi"
+      "Sao chưa vào đã bị thoát ra rồi",
+      "Tạo nhân vật xong cứ bị đứng màn hình ko thì bị thoát ra",
+      "Chỉnh nhân vật xong rồi cái lag xong văng ra tận mấy lần rồi đấy"
     ],
     "sources": [
       "app_store"
     ],
-    "first_seen": "2026-06-09T04:24:30-07:00",
+    "first_seen": "2026-04-17T06:48:44-07:00",
     "last_seen": "2026-06-09T04:24:30-07:00",
     "status": "open"
   },
   {
-    "id": "bdb5e814-fff0-4105-bc07-4d9fc6235ffd",
-    "topic": "Không tải được game",
-    "severity": "low",
-    "mention_count": 1,
+    "id": "594bd400-30b9-4b85-b6cb-aeea146f571f",
+    "topic": "Không vào được game",
+    "severity": "medium",
+    "mention_count": 5,
     "sample_reviews": [
-      "Sao ko tải đc ta"
+      "Sao ko tải đc ta",
+      "Game hay, đồ họa đẹp nhưng mình vô chs ko đc. Mong nhà xuất bản sửa lại nha",
+      "sao tự nhiên dô bị lag lại z admin đã z để 1 tiếng cũn k dô đc game"
     ],
     "sources": [
       "app_store"
     ],
-    "first_seen": "2026-06-09T03:17:45-07:00",
+    "first_seen": "2026-04-21T07:11:32-07:00",
     "last_seen": "2026-06-09T03:17:45-07:00",
     "status": "open"
   },
   {
-    "id": "f44dbfa5-0191-4b30-8210-d4ef28b2ec33",
-    "topic": "Lỗi PVP 3v3, ghép trận lỗi",
+    "id": "91940f56-cd99-4cf4-b38d-588a24cdf4b9",
+    "topic": "Lỗi PVP/ghép trận",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [
@@ -60,23 +65,8 @@
     "status": "open"
   },
   {
-    "id": "58c122ce-92a1-4973-8538-2656089d30dd",
-    "topic": "Không vào được game",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Game hay, đồ họa đẹp nhưng mình vô chs ko đc. Mong nhà xuất bản sửa lại nha"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-06-06T21:09:44-07:00",
-    "last_seen": "2026-06-06T21:09:44-07:00",
-    "status": "open"
-  },
-  {
-    "id": "8adbfd88-ff92-4a18-a472-04fdbb24555c",
-    "topic": "Nhiều lỗi game: quest kẹt, combat bug, rèn đồ",
+    "id": "5107a275-abe9-4b29-b4cd-e2b77289f5e4",
+    "topic": "Lỗi game/quest/combat",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [
@@ -90,113 +80,8 @@
     "status": "open"
   },
   {
-    "id": "9d09e211-b4be-4ada-be9d-99dac444f453",
-    "topic": "Lỗi mở cuộn văn vật",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Tui đi khảo cổ mở cuộn văn vật hoài ko ra (đã vuốt trái phải điên cuồng)."
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-26T23:12:29-07:00",
-    "last_seen": "2026-05-26T23:12:29-07:00",
-    "status": "open"
-  },
-  {
-    "id": "c86f346d-8fb8-4003-bd46-84ef13ce01c5",
-    "topic": "Lag không vào được game",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "sao tự nhiên dô bị lag lại z admin đã z để 1 tiếng cũn k dô đc game"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-26T03:56:22-07:00",
-    "last_seen": "2026-05-26T03:56:22-07:00",
-    "status": "open"
-  },
-  {
-    "id": "26d0d51c-b91d-4c49-ae7d-456616b282d3",
-    "topic": "Không vào được khi mạng yếu",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Game cứ mạng yếu yếu tí là không vào được, cứ ở màn hình chờ, cũng không thông báo cho người dùng là mạng yếu hay gì\nQuá tệ"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-13T22:41:58-07:00",
-    "last_seen": "2026-05-13T22:41:58-07:00",
-    "status": "open"
-  },
-  {
-    "id": "28c5de7b-7fbb-4330-8cd6-a035377a62aa",
-    "topic": "Lỗi tạo nhân vật bị thoát",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Tạo nhân vật xong cứ bị đứng màn hình ko thì bị thoát ra"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-10T06:38:35-07:00",
-    "last_seen": "2026-05-10T06:38:35-07:00",
-    "status": "open"
-  },
-  {
-    "id": "942ed02c-fc81-4ab3-ab6f-f33e2f7d0338",
-    "topic": "thoát ra không vào được",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "sao cứ thoát ra vô lại mà ko vô được còn vô chậm nửa nhìn muốn bỏ game luôn á 😤"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-04-21T07:11:32-07:00",
-    "last_seen": "2026-04-21T07:11:32-07:00",
-    "status": "open"
-  },
-  {
-    "id": "dc702dfa-7487-4322-af29-194f8726d798",
-    "topic": "lag và văng ra khi chỉnh nhân vật",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Chỉnh nhân vật xong rồi cái lag xong văng ra tận mấy lần rồi đấy"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-04-21T04:26:14-07:00",
-    "last_seen": "2026-04-21T04:26:14-07:00",
-    "status": "open"
-  },
-  {
-    "id": "20fe1848-b51b-4cdd-954e-64c28683c315",
-    "topic": "bị văng không chơi được",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Máy tôi vào mãi rồi lại bị văng ko chơi đc mong nhà làm game fix lỗi"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-04-17T06:48:44-07:00",
-    "last_seen": "2026-04-17T06:48:44-07:00",
-    "status": "open"
-  },
-  {
-    "id": "2ecb34e8-25d4-45d9-ad26-9c26398638dc",
-    "topic": "lag khi làm nhiệm vụ",
+    "id": "b8a8fa54-96a4-4cf4-817f-ff1954ac24d4",
+    "topic": "Lag/giật",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [

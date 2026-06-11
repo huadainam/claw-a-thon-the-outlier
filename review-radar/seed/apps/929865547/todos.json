@@ -1,22 +1,24 @@
 [
   {
-    "id": "1a7ceaf4-a320-4b63-9b05-a439782a411d",
-    "topic": "bị gỡ bàn phím tự động trên iOS 17.7",
-    "severity": "low",
-    "mention_count": 1,
+    "id": "5704e26a-1196-47b3-b62f-c1664745adc4",
+    "topic": "Lỗi bàn phím",
+    "severity": "medium",
+    "mention_count": 6,
     "sample_reviews": [
-      "Mình dùng Laban key lâu rồi mà dạo gần đây hay bị lỗi khi xài trên ios 17.7, cứ lâu lâu tự dưng bị gỡ đâu mất quay về bàn phím mặc định phải vô store cài lại khá khó chịu"
+      "Mình dùng Laban key lâu rồi mà dạo gần đây hay bị lỗi khi xài trên ios 17.7, cứ lâu lâu tự dưng bị gỡ đâu mất quay về bàn phím mặc định phải vô store cài lại khá khó chịu",
+      "Đang gõ thì bị nhảy ra bàn phím mặc định của Apple. Lại phải chuyển lại Labankey. Không tương thích với app ngân hàng.",
+      "Bị nhảy bản phím"
     ],
     "sources": [
       "app_store"
     ],
-    "first_seen": "2026-05-29T02:06:06-07:00",
+    "first_seen": "2026-03-19T20:32:46-07:00",
     "last_seen": "2026-05-29T02:06:06-07:00",
     "status": "open"
   },
   {
-    "id": "480aacb6-bcdf-457d-a4c2-cfcbaa7cab60",
-    "topic": "treo máy, không sử dụng được",
+    "id": "e47bdac9-0f18-404d-a820-488075ab7d86",
+    "topic": "Crash/đơ app",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [
@@ -30,23 +32,8 @@
     "status": "open"
   },
   {
-    "id": "b32372ca-f1bd-4119-96ff-1d2a0cef9c46",
-    "topic": "bị nhảy bàn phím, không tương thích app ngân hàng",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Đang gõ thì bị nhảy ra bàn phím mặc định của Apple. Lại phải chuyển lại Labankey. Không tương thích với app ngân hàng."
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-19T10:13:49-07:00",
-    "last_seen": "2026-05-19T10:13:49-07:00",
-    "status": "open"
-  },
-  {
-    "id": "80f2e508-6402-4a4c-85dc-08d634993eb2",
-    "topic": "phần mềm tự biến mất khỏi máy",
+    "id": "3f9c8379-56f1-4d44-8bac-67f80710c507",
+    "topic": "Lỗi ứng dụng bị gỡ",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [
@@ -60,68 +47,25 @@
     "status": "open"
   },
   {
-    "id": "f9724d7b-cd37-42a2-85c3-67c25bbd22b0",
-    "topic": "bị nhảy bàn phím",
-    "severity": "low",
-    "mention_count": 1,
+    "id": "cfe58e0e-790a-4c1d-b68b-392b636977e1",
+    "topic": "Lỗi tiếng Việt",
+    "severity": "medium",
+    "mention_count": 4,
     "sample_reviews": [
-      "Bị nhảy bản phím"
+      "Dạo này bàn phím không ấn được tiếng việt í",
+      "Gõ ko ra dấu,chẳng khác bàn phím tiếng anh",
+      "ổn nhưng mà xài 1thời gian sau lại k gõ ra TV dc"
     ],
     "sources": [
       "app_store"
     ],
-    "first_seen": "2026-05-17T03:42:27-07:00",
-    "last_seen": "2026-05-17T03:42:27-07:00",
-    "status": "open"
-  },
-  {
-    "id": "8fc3f7aa-4862-47a7-8551-a969a182a27c",
-    "topic": "không ấn được tiếng việt",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Dạo này bàn phím không ấn được tiếng việt í"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-14T21:38:32-07:00",
+    "first_seen": "2026-02-25T03:27:02-07:00",
     "last_seen": "2026-05-14T21:38:32-07:00",
     "status": "open"
   },
   {
-    "id": "ef4caf47-6de9-4361-90d4-337783eb12ed",
-    "topic": "gõ không ra dấu tiếng việt",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Gõ ko ra dấu,chẳng khác bàn phím tiếng anh"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-14T21:18:28-07:00",
-    "last_seen": "2026-05-14T21:18:28-07:00",
-    "status": "open"
-  },
-  {
-    "id": "34d573aa-96d5-484d-862a-d4fdf09b9d92",
-    "topic": "không chọn được bàn phím",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Không chọn được bàn phím"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-14T05:58:39-07:00",
-    "last_seen": "2026-05-14T05:58:39-07:00",
-    "status": "open"
-  },
-  {
-    "id": "5919f566-5b91-47f3-8b9f-bba7aa806bb1",
-    "topic": "âm thanh gõ bị lỗi không nghe được",
+    "id": "7d352570-00f1-4e2c-aa7c-9d3abc0758fc",
+    "topic": "Lỗi âm thanh",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [
@@ -135,8 +79,8 @@
     "status": "open"
   },
   {
-    "id": "b23af900-a15f-4881-83ba-42084a5259ee",
-    "topic": "không có ghi nhớ từ",
+    "id": "26b01368-1d84-4794-8179-61f58c880ecc",
+    "topic": "Lỗi từ điển/từ gợi ý",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [
@@ -150,128 +94,40 @@
     "status": "open"
   },
   {
-    "id": "62fd24b5-7fa1-440f-b507-2218f83883f1",
-    "topic": "bàn phím biến mất sau khi thoát",
+    "id": "dd1aa308-3236-4b0d-bd4a-5015d261be59",
+    "topic": "Lỗi giao diện/font",
     "severity": "low",
-    "mention_count": 1,
+    "mention_count": 2,
     "sample_reviews": [
-      "lc đầu để rất đẹp và sau khi mình thoát ra và đợi một lúc rồi mik vào lại dể nhắn tin thì nó biến mất mik phải cài đặt lại"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-04-28T02:35:51-07:00",
-    "last_seen": "2026-04-28T02:35:51-07:00",
-    "status": "open"
-  },
-  {
-    "id": "7319f134-2ed8-45de-b43a-f1218520ff92",
-    "topic": "font chữ và phím tắt không thay đổi được",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Font chữ cài theo ý thich k thay đổi, vị trí phím tắt phía trên cùng bàn phím không thay đổi cho nhau được"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-04-13T16:21:10-07:00",
-    "last_seen": "2026-04-13T16:21:10-07:00",
-    "status": "open"
-  },
-  {
-    "id": "97d6533e-d822-4287-8bd8-cb9c55cd469c",
-    "topic": "không gõ được tiếng việt sau thời gian sử dụng",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "ổn nhưng mà xài 1thời gian sau lại k gõ ra TV dc"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-04-12T07:10:13-07:00",
-    "last_seen": "2026-04-12T07:10:13-07:00",
-    "status": "open"
-  },
-  {
-    "id": "c20cef30-aa3f-495e-b12a-e361f15dde30",
-    "topic": "bàn phím treo",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Bàn phím ngày nào cũng treo ít nhất 2-4 lần. Không thao tác được buộc phải chuyển về bàn phím iphone mặc định. Khá là khó chịu"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-03-19T20:32:46-07:00",
-    "last_seen": "2026-03-19T20:32:46-07:00",
-    "status": "open"
-  },
-  {
-    "id": "a12a0eb5-6a3a-4303-aa52-c792960ba693",
-    "topic": "cỡ chữ quá nhỏ",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
+      "Font chữ cài theo ý thich k thay đổi, vị trí phím tắt phía trên cùng bàn phím không thay đổi cho nhau được",
       "không có mục cỡ chữ .chữ và con số quá nhỏ"
     ],
     "sources": [
       "app_store"
     ],
     "first_seen": "2026-03-12T06:48:16-07:00",
-    "last_seen": "2026-03-12T06:48:16-07:00",
+    "last_seen": "2026-04-13T16:21:10-07:00",
     "status": "open"
   },
   {
-    "id": "1e1b3e7b-4c60-4be4-8158-ef8f598b782f",
-    "topic": "lỗi chuyển ngôn ngữ",
+    "id": "89317998-6698-49d2-9de0-b4b8696ab90a",
+    "topic": "Lỗi ngôn ngữ",
     "severity": "low",
-    "mention_count": 1,
+    "mention_count": 2,
     "sample_reviews": [
-      "Sao mà lúc nhắn tin là nó cứ bị như là bấm tiếng lúc thì bấm tiếng Việt là sao vậy nhà phát hành😔"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-03-05T06:28:26-07:00",
-    "last_seen": "2026-03-05T06:28:26-07:00",
-    "status": "open"
-  },
-  {
-    "id": "c51456e6-6231-4014-843b-fcc6458ee27c",
-    "topic": "tự động chuyển tiếng Anh",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
+      "Sao mà lúc nhắn tin là nó cứ bị như là bấm tiếng lúc thì bấm tiếng Việt là sao vậy nhà phát hành😔",
       "Đang gõ tiếng việt ngon lành cái chuyển qua tiếng anh khó chịu vô cùng"
     ],
     "sources": [
       "app_store"
     ],
     "first_seen": "2026-02-28T02:48:58-07:00",
-    "last_seen": "2026-02-28T02:48:58-07:00",
+    "last_seen": "2026-03-05T06:28:26-07:00",
     "status": "open"
   },
   {
-    "id": "2e53591f-18c6-4d95-97ee-5835f6cb3dab",
-    "topic": "không viết được tiếng Việt",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Ko viết được tiếng việt"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-02-25T03:27:02-07:00",
-    "last_seen": "2026-02-25T03:27:02-07:00",
-    "status": "open"
-  },
-  {
-    "id": "eb67979b-5fbc-4dfd-868b-73bb13491055",
-    "topic": "không ghi được trên TikTok, lag",
+    "id": "047abb33-369d-4b4b-9415-02e9bc4fd3ff",
+    "topic": "Lag/giật",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [

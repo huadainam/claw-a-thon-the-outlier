@@ -1,22 +1,23 @@
 [
   {
-    "id": "73b54e8c-4ac6-4afe-b807-1610e8cab158",
-    "topic": "mất lượt",
+    "id": "7b1775e7-3f13-492b-98e6-e7ff7b2bfdc5",
+    "topic": "Lỗi game",
     "severity": "low",
-    "mention_count": 1,
+    "mention_count": 2,
     "sample_reviews": [
-      "toàn bị mất lượt"
+      "toàn bị mất lượt",
+      "Game xếp lượt bắn kiểu đ j mà qua 2 lượt vẫn đ đến mình. Bực vkl"
     ],
     "sources": [
       "app_store"
     ],
-    "first_seen": "2026-06-02T09:09:45-07:00",
+    "first_seen": "2026-05-21T13:10:20-07:00",
     "last_seen": "2026-06-02T09:09:45-07:00",
     "status": "open"
   },
   {
-    "id": "6607c9b8-1a53-42d7-80a8-b66849fa1623",
-    "topic": "lag mạng",
+    "id": "7422f9d2-f444-4d77-bef5-f511d729a1b5",
+    "topic": "Lag/giật",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [
@@ -30,38 +31,25 @@
     "status": "open"
   },
   {
-    "id": "0512f5af-ad58-46c2-b50e-e3150507c731",
-    "topic": "crash đăng nhập",
-    "severity": "low",
-    "mention_count": 1,
+    "id": "bc1b66ca-5b88-4ea0-90e6-507bf9e160bb",
+    "topic": "Lỗi đăng nhập",
+    "severity": "medium",
+    "mention_count": 4,
     "sample_reviews": [
-      "Game này tệ vãi\nĐang đăng nhập chơi bình thường cái tự dưng văng ra bắt đăng nhập tạo nhân vật chơi lại từ đầu\nMá cay vl"
+      "Game này tệ vãi\nĐang đăng nhập chơi bình thường cái tự dưng văng ra bắt đăng nhập tạo nhân vật chơi lại từ đầu\nMá cay vl",
+      "Đang nhập bằng face giờ vô cái phải tạo lại nhân vật chơi bao lâu k lẽ về số không . Hướng dẫn báo cáo thì vô trang chỉ dẫn lung tung k biết làm sao . Đề nghị hỗ trợ trực tiếp",
+      "Game đeo gì mà chơi được thôi gian gian lên được cấp 50 rồi xoá ních luôn là sao tui nạp bao nhiêu tiền vào đó rồi giờ xoá ních không vào được nữa phải chơi lại mất tiền mất thời gian"
     ],
     "sources": [
       "app_store"
     ],
-    "first_seen": "2026-06-02T04:28:59-07:00",
+    "first_seen": "2026-05-24T02:35:08-07:00",
     "last_seen": "2026-06-02T04:28:59-07:00",
     "status": "open"
   },
   {
-    "id": "f70899dc-cba1-4652-a725-407b632816fb",
-    "topic": "lỗi đăng nhập",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Đang nhập bằng face giờ vô cái phải tạo lại nhân vật chơi bao lâu k lẽ về số không . Hướng dẫn báo cáo thì vô trang chỉ dẫn lung tung k biết làm sao . Đề nghị hỗ trợ trực tiếp"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-26T08:02:03-07:00",
-    "last_seen": "2026-05-26T08:02:03-07:00",
-    "status": "open"
-  },
-  {
-    "id": "2186ce0c-7465-4322-a6ea-c328910755ed",
-    "topic": "lỗi mất nhân vật",
+    "id": "287cdd2b-9a82-4ff2-9ea1-4afa0baef924",
+    "topic": "Mất tài khoản/dữ liệu",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [
@@ -75,23 +63,8 @@
     "status": "open"
   },
   {
-    "id": "ec1df26c-a528-42f8-ac7d-a186bcddf318",
-    "topic": "lỗi không vào được game",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Game đeo gì mà chơi được thôi gian gian lên được cấp 50 rồi xoá ních luôn là sao tui nạp bao nhiêu tiền vào đó rồi giờ xoá ních không vào được nữa phải chơi lại mất tiền mất thời gian"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-25T02:23:12-07:00",
-    "last_seen": "2026-05-25T02:23:12-07:00",
-    "status": "open"
-  },
-  {
-    "id": "e64dffa2-b9c5-40c4-bddc-cef5f786e8f4",
-    "topic": "lỗi nhỏ chưa xác định",
+    "id": "f950d876-742e-4b0e-b875-c66ec3cb901a",
+    "topic": "Lỗi khác",
     "severity": "low",
     "mention_count": 1,
     "sample_reviews": [
@@ -102,36 +75,6 @@
     ],
     "first_seen": "2026-05-24T07:29:40-07:00",
     "last_seen": "2026-05-24T07:29:40-07:00",
-    "status": "open"
-  },
-  {
-    "id": "815307b4-f31d-4cdc-b531-4f17edfd8206",
-    "topic": "lỗi không vào được tài khoản",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Tôi chơi bình thường, sao tài khoản của tôi lại không vào được nữa"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-24T02:35:08-07:00",
-    "last_seen": "2026-05-24T02:35:08-07:00",
-    "status": "open"
-  },
-  {
-    "id": "739f96cf-2cbf-4351-9c25-96c7ffeee30e",
-    "topic": "lỗi xếp lượt không đúng",
-    "severity": "low",
-    "mention_count": 1,
-    "sample_reviews": [
-      "Game xếp lượt bắn kiểu đ j mà qua 2 lượt vẫn đ đến mình. Bực vkl"
-    ],
-    "sources": [
-      "app_store"
-    ],
-    "first_seen": "2026-05-21T13:10:20-07:00",
-    "last_seen": "2026-05-21T13:10:20-07:00",
     "status": "open"
   }
 ]

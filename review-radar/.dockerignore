@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+.env.*
+data/
+tests/
+*.log
+debug_*.json
+seed_apps.txt
+# NOTE: seed/ is intentionally NOT ignored — it is bundled into the image.

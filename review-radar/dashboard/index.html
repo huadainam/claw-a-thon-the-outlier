@@ -61,6 +61,10 @@
       <button onclick="doResolve()">Tìm app</button>
     </div>
     <div id="resolveResult"></div>
+    <div id="availableWrap" class="hidden" style="margin-top:28px">
+      <h3 style="font-weight:600">App đã có sẵn — chọn để xem ngay</h3>
+      <div class="suggest" id="availableApps"></div>
+    </div>
   </section>
 
   <!-- DASHBOARD SCREEN -->
@@ -117,7 +121,18 @@ function showFind(){ pollGen++; document.getElementById('findScreen').classList.
   document.getElementById('dashScreen').classList.add('hidden');
   document.getElementById('btnRefresh').classList.add('hidden');
   document.getElementById('btnChange').classList.add('hidden');
-  document.getElementById('appInput').focus(); }
+  document.getElementById('appInput').focus(); loadAvailable(); }
+
+async function loadAvailable(){
+  const wrap=document.getElementById('availableWrap'), box=document.getElementById('availableApps');
+  const data=await api('/api/apps').catch(()=>null);
+  if(!data || !data.apps.length){ wrap.classList.add('hidden'); return; }
+  box.innerHTML=data.apps.map(a=>`<div class="item" onclick="switchApp('${a.app_id}')">
+    <img class="icon" src="${a.icon||''}"> <b>${a.title}</b>
+    <div class="muted">${a.developer||''}</div>
+    <div class="muted">${(a.stores||[]).join(', ')}</div></div>`).join('');
+  wrap.classList.remove('hidden');
+}
 
 function showDash(){ document.getElementById('findScreen').classList.add('hidden');
   document.getElementById('dashScreen').classList.remove('hidden');

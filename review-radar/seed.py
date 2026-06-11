@@ -25,7 +25,7 @@ from storage import LocalRegistry, LocalStore
 from scraper import resolve_app
 from pipeline import run_pipeline
 
-SLEEP_BETWEEN = 2.0  # seconds, to avoid store rate-limiting across many apps
+SLEEP_BETWEEN = 3.0  # seconds, to avoid store rate-limiting across many apps
 
 def pick_app(res):
     """Choose the app dict from a resolve result, or None to skip."""

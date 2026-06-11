@@ -1,3 +1,4 @@
+import time
 import requests
 from google_play_scraper import search as gp_search_fn, reviews, Sort
 
@@ -14,10 +15,22 @@ def gp_search_live(name):
              "icon": r.get("icon", ""), "app_id": r["appId"],
              "store": "google_play"} for r in results if r.get("appId")]
 
-def gp_reviews_live(app_id, count):
-    result, _ = reviews(app_id, lang="vi", country="vn",
-                        sort=Sort.NEWEST, count=count)
-    return result
+def gp_reviews_live(app_id, count, attempts=3):
+    # Google Play throttles rapid back-to-back requests (returns errors or an empty
+    # batch). Retry with backoff so a transient throttle doesn't yield 0 reviews.
+    last_exc = None
+    for i in range(attempts):
+        try:
+            result, _ = reviews(app_id, lang="vi", country="vn",
+                                sort=Sort.NEWEST, count=count)
+            if result:
+                return result
+        except Exception as e:
+            last_exc = e
+        time.sleep(2 * (i + 1))
+    if last_exc:
+        raise last_exc
+    return []
 
 def as_search_live(name):
     try:

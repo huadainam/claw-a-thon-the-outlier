@@ -15,6 +15,9 @@
   button { background:var(--green); color:#06240f; border:0; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; }
   button.ghost { background:#222; color:var(--text); }
   .wrap { padding:24px; max-width:1280px; margin:0 auto; }
+  .appbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+  .chip { background:#222; color:var(--text); border:1px solid #2a2f37; border-radius:999px; padding:6px 14px; font-size:13px; }
+  .chip.active { background:var(--green); color:#06240f; border-color:var(--green); }
   .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
   .card { background:var(--card); border-radius:12px; padding:18px; }
   .card .num { font-size:28px; font-weight:700; }
@@ -30,6 +33,9 @@
   .suggest .item { background:var(--card); border-radius:12px; padding:14px; cursor:pointer; border:1px solid #2a2f37; }
   .suggest .item:hover { border-color:var(--green); }
   .banner { background:#7f1d1d; color:#fecaca; padding:12px 16px; border-radius:10px; margin-bottom:16px; }
+  .progress { background:#11151a; border:1px solid #2a2f37; border-radius:10px; padding:12px 16px; margin-bottom:16px; }
+  .bar { height:8px; background:#2a2f37; border-radius:999px; overflow:hidden; margin-top:8px; }
+  .bar > div { height:100%; background:var(--green); width:0%; transition:width .3s; }
   .hidden { display:none; }
   .row-detail { background:#11151a; font-size:13px; color:var(--muted); }
   img.icon { width:40px; height:40px; border-radius:8px; vertical-align:middle; }
@@ -42,7 +48,7 @@
   <span id="lastUpdated" class="muted"></span>
   <span style="flex:1"></span>
   <button id="btnRefresh" class="hidden" onclick="refresh()">Refresh</button>
-  <button id="btnChange" class="ghost hidden" onclick="showFind()">Đổi app</button>
+  <button id="btnChange" class="ghost hidden" onclick="showFind()">+ Theo dõi app mới</button>
 </header>
 
 <div class="wrap">
@@ -59,6 +65,8 @@
 
   <!-- DASHBOARD SCREEN -->
   <section id="dashScreen" class="hidden">
+    <div class="appbar" id="appBar"></div>
+    <div class="progress hidden" id="progress"></div>
     <div class="cards">
       <div class="card"><div class="muted">Tổng review</div><div class="num" id="cTotal">0</div></div>
       <div class="card"><div class="muted">Bug open</div><div class="num" id="cOpen">0</div></div>
@@ -99,22 +107,24 @@
 </div>
 
 <script>
-let TODOS=[], REVIEWS=[], donutChart=null, barChart=null;
+let TODOS=[], REVIEWS=[], donutChart=null, barChart=null, pollGen=0;
+const CONN_ERR='<div class="banner">Không kết nối được tới server. Hãy chạy <b>python app.py</b> rồi mở <b>http://localhost:8080</b> — đừng mở file HTML trực tiếp.</div>';
 
 async function api(path, opts){ const r=await fetch(path,opts); return r.json(); }
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-function showFind(){ document.getElementById('findScreen').classList.remove('hidden');
+function showFind(){ pollGen++; document.getElementById('findScreen').classList.remove('hidden');
   document.getElementById('dashScreen').classList.add('hidden');
   document.getElementById('btnRefresh').classList.add('hidden');
-  document.getElementById('btnChange').classList.add('hidden'); }
+  document.getElementById('btnChange').classList.add('hidden');
+  document.getElementById('appInput').focus(); }
 
 function showDash(){ document.getElementById('findScreen').classList.add('hidden');
   document.getElementById('dashScreen').classList.remove('hidden');
   document.getElementById('btnRefresh').classList.remove('hidden');
   document.getElementById('btnChange').classList.remove('hidden'); }
 
-const CONN_ERR='<div class="banner">Không kết nối được tới server. Hãy chạy <b>python app.py</b> rồi mở <b>http://localhost:8080</b> — đừng mở file HTML trực tiếp.</div>';
-
+// ---- find + track ----
 async function doResolve(){
   const name=document.getElementById('appInput').value.trim();
   if(!name) return;
@@ -140,28 +150,65 @@ async function doResolve(){
 }
 
 async function track(app){
-  document.getElementById('resolveResult').innerHTML='<div class="muted">Đang phân tích review...</div>';
-  await api('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(app)});
-  await load();
+  try { await api('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(app)}); }
+  catch(e){ document.getElementById('resolveResult').innerHTML=CONN_ERR; return; }
+  showDash(); startPolling();
 }
 
-async function refresh(){ await api('/run',{method:'POST'}); setTimeout(load, 3000); }
+async function switchApp(id){
+  await api('/api/active',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app_id:id})});
+  showDash(); startPolling();
+}
 
-async function load(){
+async function refresh(){ await api('/run',{method:'POST'}); startPolling(); }
+
+// ---- polling loop: render now, keep polling while analyzing ----
+async function startPolling(){
+  const gen=++pollGen;
+  while(gen===pollGen){
+    const analyzing=await tick();
+    if(!analyzing || gen!==pollGen) break;
+    await sleep(2500);
+  }
+}
+
+async function tick(){
   let stats;
-  try { stats=await api('/api/stats'); }
-  catch(e){ showFind(); document.getElementById('resolveResult').innerHTML=CONN_ERR; return; }
-  if(!stats.app || !stats.app.title){ showFind(); return; }
-  showDash();
+  try { stats=await api('/api/stats'); } catch(e){ showFind(); document.getElementById('resolveResult').innerHTML=CONN_ERR; return false; }
+  if(!stats.app || !stats.app.title){ showFind(); return false; }
   document.getElementById('appName').textContent='· '+stats.app.title;
+  const m=stats.meta||{}; const lu=(m.last_updated||'').slice(0,19).replace('T',' ');
+  document.getElementById('lastUpdated').textContent=lu?('· cập nhật '+lu):'';
+  renderProgress(m);
   TODOS=await api('/api/todos'); REVIEWS=await api('/api/reviews');
   document.getElementById('cTotal').textContent=stats.total;
   document.getElementById('cOpen').textContent=TODOS.filter(t=>t.status==='open').length;
   document.getElementById('cCrit').textContent=TODOS.filter(t=>t.severity==='critical').length;
   document.getElementById('cDone').textContent=TODOS.filter(t=>t.status==='done').length;
   drawCharts(stats); renderTodos(); renderReviews();
+  await loadApps();
+  return m.status==='analyzing';
 }
 
+function renderProgress(m){
+  const p=document.getElementById('progress');
+  if(m.status==='analyzing'){
+    const d=(m.progress&&m.progress.done)||0, t=(m.progress&&m.progress.total)||0;
+    const pct=t?Math.round(d/t*100):0;
+    p.classList.remove('hidden');
+    p.innerHTML=`Đang phân tích review... <b>${d}/${t}</b><div class="bar"><div style="width:${pct}%"></div></div>`;
+  } else { p.classList.add('hidden'); }
+}
+
+async function loadApps(){
+  const data=await api('/api/apps').catch(()=>null);
+  if(!data) return;
+  const bar=document.getElementById('appBar');
+  bar.innerHTML=data.apps.map(a=>`<button class="chip ${a.app_id===data.active_app_id?'active':''}" onclick="switchApp('${a.app_id}')">${a.title}</button>`).join('')
+    +`<button class="chip" onclick="showFind()">+ Thêm app</button>`;
+}
+
+// ---- renderers ----
 function drawCharts(stats){
   const bl=stats.by_label||{};
   const labels=Object.keys(bl), vals=Object.values(bl);
@@ -201,7 +248,9 @@ function expand(tr,t){
 async function toggle(id,status){
   const next=status==='open'?'done':'open';
   await api('/api/todos/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:next})});
-  await load();
+  TODOS=await api('/api/todos'); renderTodos();
+  document.getElementById('cOpen').textContent=TODOS.filter(t=>t.status==='open').length;
+  document.getElementById('cDone').textContent=TODOS.filter(t=>t.status==='done').length;
 }
 function renderReviews(){
   const fl=document.getElementById('rLabel').value, fsrc=document.getElementById('rSource').value;
@@ -213,7 +262,15 @@ function renderReviews(){
     tb.appendChild(tr);
   });
 }
-load();
+
+// ---- init ----
+async function init(){
+  let data;
+  try { data=await api('/api/apps'); } catch(e){ showFind(); document.getElementById('resolveResult').innerHTML=CONN_ERR; return; }
+  if(data.active_app_id){ showDash(); startPolling(); }
+  else { showFind(); }
+}
+init();
 </script>
 </body>
 </html>

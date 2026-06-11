@@ -50,7 +50,8 @@
   <section id="findScreen">
     <h2>Theo dõi một app</h2>
     <div class="filters">
-      <input type="text" id="appInput" placeholder="Nhập tên app (vd: zalo)" style="min-width:320px">
+      <input type="text" id="appInput" placeholder="Nhập tên app (vd: zalo)" style="min-width:320px"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();doResolve();}">
       <button onclick="doResolve()">Tìm app</button>
     </div>
     <div id="resolveResult"></div>
@@ -112,11 +113,16 @@ function showDash(){ document.getElementById('findScreen').classList.add('hidden
   document.getElementById('btnRefresh').classList.remove('hidden');
   document.getElementById('btnChange').classList.remove('hidden'); }
 
+const CONN_ERR='<div class="banner">Không kết nối được tới server. Hãy chạy <b>python app.py</b> rồi mở <b>http://localhost:8080</b> — đừng mở file HTML trực tiếp.</div>';
+
 async function doResolve(){
   const name=document.getElementById('appInput').value.trim();
   if(!name) return;
-  const res=await api('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
   const box=document.getElementById('resolveResult');
+  box.innerHTML='<div class="muted">Đang tìm...</div>';
+  let res;
+  try { res=await api('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})}); }
+  catch(e){ box.innerHTML=CONN_ERR; return; }
   if(res.status==='matched'){
     box.innerHTML=`<div class="suggest"><div class="item" onclick='track(${JSON.stringify(res.app)})'>
       <img class="icon" src="${res.app.icon||''}"> <b>${res.app.title}</b><div class="muted">${res.app.developer||''}</div>
@@ -142,7 +148,9 @@ async function track(app){
 async function refresh(){ await api('/run',{method:'POST'}); setTimeout(load, 3000); }
 
 async function load(){
-  const stats=await api('/api/stats');
+  let stats;
+  try { stats=await api('/api/stats'); }
+  catch(e){ showFind(); document.getElementById('resolveResult').innerHTML=CONN_ERR; return; }
   if(!stats.app || !stats.app.title){ showFind(); return; }
   showDash();
   document.getElementById('appName').textContent='· '+stats.app.title;

@@ -45,9 +45,12 @@ All source lives under `review-radar/`.
 **Files:**
 - Create: `review-radar/requirements.txt`
 - Create: `review-radar/.env.example`
-- Create: `review-radar/__init__.py` (empty)
-- Create: `review-radar/tests/__init__.py` (empty)
+- Create: `review-radar/pytest.ini` (flat-layout import config)
 - Create: `review-radar/data/.gitkeep` (empty)
+
+> Do NOT create `__init__.py` files: the directory name `review-radar` has a hyphen and
+> cannot be a Python package, so package-style collection breaks. Use a flat layout where
+> `pytest.ini` puts the project dir on `sys.path` and tests do `from models import ...`.
 
 - [ ] **Step 1: Create `requirements.txt`**
 
@@ -81,9 +84,15 @@ MEMORY_ID=
 MEMORY_BASE_URL=https://agentbase.api.vngcloud.vn/memory
 ```
 
-- [ ] **Step 3: Create empty `__init__.py`, `tests/__init__.py`, and `data/.gitkeep`**
+- [ ] **Step 3: Create `pytest.ini` and `data/.gitkeep`**
 
-Create three empty files at the paths above.
+`review-radar/pytest.ini`:
+```ini
+[pytest]
+pythonpath = .
+testpaths = tests
+```
+And create an empty `review-radar/data/.gitkeep`.
 
 - [ ] **Step 4: Create and activate a virtualenv, install deps**
 

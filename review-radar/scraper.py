@@ -53,3 +53,45 @@ def resolve_app(name, gp_search=None, as_search=None):
     return {"status": "not_found",
             "message": f"Không tìm thấy app '{name}'.",
             "suggestions": [app for _, app in scored[:5]]}
+
+def scrape_google_play(app_id, count=1000, fetch=None):
+    if not app_id:
+        return []
+    if fetch is None:
+        from scraper_live import gp_reviews_live as fetch
+    try:
+        raw = fetch(app_id, count)
+    except Exception:
+        return []
+    out = []
+    for r in raw:
+        out.append({
+            "id": str(r.get("reviewId")),
+            "userName": r.get("userName", ""),
+            "content": r.get("content", "") or "",
+            "score": r.get("score", 0),
+            "at": str(r.get("at", "")),
+            "source": "google_play",
+        })
+    return out
+
+def scrape_app_store(app_id, count=1000, fetch=None):
+    if not app_id:
+        return []
+    if fetch is None:
+        from scraper_live import as_reviews_live as fetch
+    try:
+        raw = fetch(app_id, count)
+    except Exception:
+        return []
+    out = []
+    for r in raw:
+        out.append({
+            "id": str(r.get("review_id") or r.get("id")),
+            "userName": r.get("user_name", ""),
+            "content": r.get("review", "") or "",
+            "score": r.get("rating", 0),
+            "at": str(r.get("date", "")),
+            "source": "app_store",
+        })
+    return out

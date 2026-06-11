@@ -9,6 +9,18 @@ def make_deps(gp_reviews, as_reviews):
                                     confidence=0.9) for r in revs],
     )
 
+def test_pipeline_sets_meta_status_and_progress(tmp_path):
+    store = LocalStore(data_dir=str(tmp_path))
+    store.save_config({"title": "Zalo", "gp_id": "g", "as_id": "a"})
+    gp = [{"id": f"g{i}", "content": "lỗi", "score": 1, "source": "google_play",
+           "at": "2026-06-01"} for i in range(5)]
+    run_pipeline(store=store, batch_size=2, **make_deps(gp, []))
+    m = store.load_meta()
+    assert m["status"] == "idle"
+    assert m["progress"]["total"] == 5
+    assert m["progress"]["done"] == 5
+    assert m["last_updated"]
+
 def test_pipeline_processes_new_reviews(tmp_path):
     store = LocalStore(data_dir=str(tmp_path))
     store.save_config({"title": "Zalo", "gp_id": "g", "as_id": "a"})

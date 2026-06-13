@@ -241,6 +241,7 @@ function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, ava
       {/* Available apps */}
       {available.length > 0 && (
         <>
+          <div id="apps-gallery" style={{ scrollMarginTop: 12 }}></div>
           <SectionHeader title={t("available")} sub={t("available_sub")}/>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(248px, 1fr))", gap:14 }}>
             {available.map((row, i) => {

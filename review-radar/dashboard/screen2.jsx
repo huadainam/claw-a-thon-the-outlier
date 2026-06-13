@@ -3,65 +3,41 @@ function Crawling({ t, app, onDone, onBack }) {
   const STEPS = ["confirmed", "crawling", "categorizing", "building"];
   const [active, setActive] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [collected, setCollected] = useState(0);
+  const [counts, setCounts] = useState({ done: 0, total: 0 });  // reviews classified / total
   const [notified, setNotified] = useState(false);
-  const [estSec, setEstSec] = useState(null);   // null until a real measurement exists
   const a = window.DATA.APPS[app] || { name: app };
-  // Anchor for an adaptive ETA: measured throughput (reviews/sec), not a guess.
-  const rateAnchor = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
     let seenAnalyzing = false;
-    let pollCount = 0;
-    rateAnchor.current = null;
-    setEstSec(null);
 
     const poll = async () => {
       if (cancelled) return;
       try {
         const meta = await window.ARM_Bridge.getCrawlProgress(app);
         const done  = (meta.progress && meta.progress.done)  || 0;
-        const total = (meta.progress && meta.progress.total) || 1;
-        const pct   = total > 0 ? Math.round(done / total * 100) : 0;
+        const total = (meta.progress && meta.progress.total) || 0;
 
         if (meta.status === "analyzing") {
+          // Scraping is done by the time the backend reports "analyzing";
+          // done/total is the live classification progress.
           seenAnalyzing = true;
-          if (pct < 5) {
-            setActive(0); setProgress(100);
-          } else if (pct < 55) {
-            setActive(1); setProgress(Math.round((pct / 55) * 100));
-            setCollected(done);
-          } else if (pct < 80) {
-            setActive(2); setProgress(Math.round(((pct - 55) / 25) * 100));
-            setCollected(total);
+          setCounts({ done, total });
+          if (total > 0 && done >= total) {
+            setActive(3); setProgress(100);              // all classified → building dashboard
           } else {
-            setActive(3); setProgress(Math.round(((pct - 80) / 20) * 100));
-            setCollected(total);
-          }
-          // Adaptive ETA: anchor on the first observed (time, done) once analysis
-          // is underway, then extrapolate from the measured classification rate.
-          if (done > 0) {
-            const now = Date.now();
-            if (!rateAnchor.current) {
-              rateAnchor.current = { t: now, done };
-            } else {
-              const elapsed = (now - rateAnchor.current.t) / 1000;     // seconds
-              const processed = done - rateAnchor.current.done;        // reviews since anchor
-              if (elapsed > 1.5 && processed > 0) {
-                const rate = processed / elapsed;                      // reviews/sec
-                const remaining = Math.max(0, total - done);
-                setEstSec(Math.max(1, Math.round(remaining / rate)));
-              }
-            }
+            setActive(2);                                // classifying reviews
+            setProgress(total > 0 ? Math.round(done / total * 100) : 0);
           }
         } else if (meta.status === "idle" && seenAnalyzing) {
+          setCounts(c => ({ done: c.total || c.done, total: c.total }));
           if (!cancelled) onDone();
           return;
+        } else if (!seenAnalyzing) {
+          setActive(1); setProgress(100);                // still collecting reviews
         }
 
-        pollCount++;
-        if (!cancelled) setTimeout(poll, 2200);
+        if (!cancelled) setTimeout(poll, 2000);
       } catch(e) {
         if (!cancelled) setTimeout(poll, 3000);
       }
@@ -122,8 +98,11 @@ function Crawling({ t, app, onDone, onBack }) {
                   <div style={{ fontSize:15, fontWeight:600, color: (done||current) ? "var(--text)" : "var(--text-3)" }}>{t("step_"+s)}</div>
                   <div style={{ fontSize:13, color:"var(--text-3)", marginTop:1 }}>{t("step_"+s+"_d")}</div>
                 </div>
-                {current && i === 1 && (
-                  <div className="mono fade-in" style={{ fontSize:13, fontWeight:600, color:"var(--accent)" }}>{Math.round(progress)}%</div>
+                {current && i === 2 && counts.total > 0 && (
+                  <div className="mono fade-in" style={{ fontSize:13, fontWeight:700, color:"var(--accent)", whiteSpace:"nowrap" }}>
+                    {counts.done.toLocaleString()}/{counts.total.toLocaleString()}
+                    <span style={{ fontWeight:500, color:"var(--text-3)" }}> · {Math.round(progress)}%</span>
+                  </div>
                 )}
                 {done && <span className="badge badge-positive" style={{fontSize:11}}>✓</span>}
               </div>
@@ -131,14 +110,7 @@ function Crawling({ t, app, onDone, onBack }) {
           })}
         </div>
 
-        {/* Live stats */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:26 }}>
-          <StatBox icon="clock" label={t("est_time")} value={estSec ? `~${estSec}s` : "…"}/>
-          <StatBox icon="reviews" label={t("reviews_collected")} value={collected > 0 ? collected.toLocaleString() : "—"} accent/>
-          <StatBox icon="sparkle" label={t("current_step")} value={t("step_"+STEPS[Math.min(active, STEPS.length-1)])} small/>
-        </div>
-
-        <p style={{ fontSize:13.5, color:"var(--text-3)", textAlign:"center", lineHeight:1.5, maxWidth:480, margin:"0 auto 26px" }}>{t("s2_note")}</p>
+        <p style={{ fontSize:13.5, color:"var(--text-3)", textAlign:"center", lineHeight:1.5, maxWidth:480, margin:"6px auto 26px" }}>{t("s2_note")}</p>
 
         <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
           <button className="btn btn-secondary" onClick={onBack}><Icon name="arrowLeft" size={16}/>{t("back_apps")}</button>

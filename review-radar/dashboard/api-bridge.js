@@ -183,11 +183,17 @@
     });
   }
 
-  function makeActions(todos) {
+  function makeActions(todos, reviews) {
     todos = todos || [];
+    reviews = reviews || [];
     var SEV_TO_PRI = { critical: 'critical', medium: 'high', low: 'medium' };
     return todos.map(function(todo) {
       var samples = todo.sample_reviews || [];
+      // Count the reviews that will actually be shown when the user clicks
+      // "Xem đánh giá" (same matcher as the review link), so the "N đánh giá
+      // liên quan" badge never disagrees with the detail view. Fall back to the
+      // backend mention_count only when no reviews are loaded yet.
+      var linked = reviews.filter(function(r) { return todoMatchesReview(todo, r); }).length;
       return {
         id:       todo.id,
         priority: SEV_TO_PRI[todo.severity] || 'medium',
@@ -199,7 +205,7 @@
         sampleReviews: samples,
         matchTopic: todo.topic || '',
         owner:    (todo.sources || []).map(function(s){ return s === 'app_store' ? 'App Store' : 'Google Play'; }).join(' / ') || 'Team',
-        reviews:  todo.mention_count || 0,
+        reviews:  reviews.length ? linked : (todo.mention_count || 0),
         version:  '—',
       };
     });
@@ -390,7 +396,7 @@
 
         window.DATA.KPIS       = makeKPIs(stats, todos, reviews);
         window.DATA.CATEGORIES = makeCategories(stats.by_label);
-        window.DATA.ACTIONS    = makeActions(todos);
+        window.DATA.ACTIONS    = makeActions(todos, reviews);
         window.DATA.REVIEWS    = makeReviews(reviews, todos);
 
         window.DATA.TREND = makeTrend(reviews);

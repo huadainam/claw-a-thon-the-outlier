@@ -177,7 +177,15 @@ function Sidebar({ screen, lang, setLang, t, go, activeApp, dashSection, onDashN
           {workspaceItems.map(it => (
             <button key={it.id} className={`sb-item ${wsActive === it.id ? "active" : ""}`}
               title={it.label}
-              onClick={() => { if (it.id === "monitor" || it.id === "apps") setSelTab(it.id); if (it.screen) go(it.screen); }}>
+              onClick={() => {
+                if (it.id === "monitor" || it.id === "apps") setSelTab(it.id);
+                if (it.screen) go(it.screen);
+                // "Ứng dụng có sẵn" lands on the gallery section, not the top hero.
+                if (it.id === "apps") setTimeout(() => {
+                  const el = document.getElementById("apps-gallery");
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 160);
+              }}>
               <Icon name={it.icon} size={19}/>
               <span>{it.label}</span>
             </button>

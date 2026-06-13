@@ -1,6 +1,6 @@
 /* ============ Main App — routing + language + real backend integration ============ */
 function App() {
-  const [lang, setLang] = useState(() => localStorage.getItem("arm_lang") || "en");
+  const [lang, setLang] = useState(() => localStorage.getItem("arm_lang") || "vi");
   const [screen, setScreen] = useState("initializing");
   const [activeApp, setActiveApp] = useState(null);
   const [dashView, setDashView] = useState("overview");

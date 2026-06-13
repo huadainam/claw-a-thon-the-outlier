@@ -121,7 +121,7 @@
       settings_sub:"Manage your workspace, crawl defaults and integrations.",
       set_general:"General", set_workspace_name:"Workspace name", set_default_lang:"Default language", set_timezone:"Time zone",
       set_crawl:"Crawl defaults", set_default_freq:"Default crawl frequency", set_autocat:"Auto-categorize new reviews", set_autocat_d:"Classify topic, sentiment and priority on ingest.", set_spam:"Auto-filter spam reviews", set_spam_d:"Hide reviews matching known spam patterns.",
-      set_notif:"Notifications", set_team:"Team members", set_invite:"Invite member", set_integrations:"Integrations", set_api:"API access", set_api_d:"Use the REST API to pull review data into your own tools.", set_api_key:"API key", set_regenerate:"Regenerate", connect:"Connect", connected:"Connected", settings_saved:"Settings saved", role_admin:"Admin", role_editor:"Editor", role_viewer:"Viewer",
+      set_notif:"Notifications", set_team:"Team members", set_invite:"Invite member", set_integrations:"Integrations", set_api:"API access", set_api_d:"Use the REST API to pull review data into your own tools.", set_api_key:"API key", set_regenerate:"Regenerate", connect:"Connect", connected:"Connected", settings_saved:"Settings saved", role_admin:"Admin", role_editor:"Editor", role_viewer:"Viewer", role_admin_main:"Main admin", role_admin_sub:"Sub admin",
       nav_compare:"Compare Apps", compare_sub:"Benchmark the apps you monitor side by side.", compare_select_title:"Select apps to compare", compare_select_sub:"Pick 2 or more apps, then generate a comparison.",
       compare_cta:"Compare", compare_min:"Select at least 2 apps", selected_count:"selected", compare_again:"Change selection", export_compare:"Export comparison",
       m_health:"Health score", m_rating:"Avg. rating", m_total:"Total reviews", m_today:"Reviews today", m_critical:"Critical bugs", m_positive:"Positive sentiment", m_trend:"Volume trend",
@@ -206,7 +206,7 @@
       settings_sub:"Quản lý workspace, mặc định thu thập và tích hợp.",
       set_general:"Chung", set_workspace_name:"Tên workspace", set_default_lang:"Ngôn ngữ mặc định", set_timezone:"Múi giờ",
       set_crawl:"Mặc định thu thập", set_default_freq:"Tần suất thu thập mặc định", set_autocat:"Tự động phân loại đánh giá mới", set_autocat_d:"Phân loại chủ đề, cảm xúc và ưu tiên khi thu thập.", set_spam:"Tự động lọc đánh giá spam", set_spam_d:"Ẩn đánh giá khớp mẫu spam đã biết.",
-      set_notif:"Thông báo", set_team:"Thành viên", set_invite:"Mời thành viên", set_integrations:"Tích hợp", set_api:"Truy cập API", set_api_d:"Dùng REST API để đưa dữ liệu đánh giá vào công cụ của bạn.", set_api_key:"API key", set_regenerate:"Tạo lại", connect:"Kết nối", connected:"Đã kết nối", settings_saved:"Đã lưu cài đặt", role_admin:"Quản trị", role_editor:"Biên tập", role_viewer:"Người xem",
+      set_notif:"Thông báo", set_team:"Thành viên", set_invite:"Mời thành viên", set_integrations:"Tích hợp", set_api:"Truy cập API", set_api_d:"Dùng REST API để đưa dữ liệu đánh giá vào công cụ của bạn.", set_api_key:"API key", set_regenerate:"Tạo lại", connect:"Kết nối", connected:"Đã kết nối", settings_saved:"Đã lưu cài đặt", role_admin:"Quản trị", role_editor:"Biên tập", role_viewer:"Người xem", role_admin_main:"Admin chính", role_admin_sub:"Admin phụ",
       nav_compare:"So sánh ứng dụng", compare_sub:"Đối chiếu các ứng dụng bạn theo dõi cạnh nhau.", compare_select_title:"Chọn ứng dụng để so sánh", compare_select_sub:"Chọn từ 2 ứng dụng trở lên, rồi tạo bảng so sánh.",
       compare_cta:"So sánh", compare_min:"Chọn ít nhất 2 ứng dụng", selected_count:"đã chọn", compare_again:"Đổi lựa chọn", export_compare:"Xuất bảng so sánh",
       m_health:"Điểm sức khỏe", m_rating:"Điểm đánh giá TB", m_total:"Tổng đánh giá", m_today:"Đánh giá hôm nay", m_critical:"Bug nghiêm trọng", m_positive:"Cảm xúc tích cực", m_trend:"Xu hướng lượng",
@@ -226,10 +226,9 @@
     { id:"sch_weekly_bug", freq:"Weekly · Mon", recipients:"app-ops (8)", format:"PDF", next:"16/06", channel:"download" },
   ];
   var TEAM = [
-    { name:"Trần Linh", email:"linh.tran@company", role:"role_admin", initials:"TL", color:["#ffd479","#ff9f0a"] },
-    { name:"Minh Phạm", email:"minh.pham@company", role:"role_editor", initials:"MP", color:["#7bd3ff","#0a84ff"] },
-    { name:"An Nguyễn", email:"an.nguyen@company", role:"role_editor", initials:"AN", color:["#a0f0c0","#1f9d55"] },
-    { name:"Huy Lê", email:"huy.le@company", role:"role_viewer", initials:"HL", color:["#e0b0ff","#8a4bd8"] },
+    { name:"Nam. Hứa Đại", email:"namhd@vng.com.vn", role:"role_admin_main", avatar:"assets/namhd.jpeg", initials:"N", color:["#7bd3ff","#0a84ff"] },
+    { name:"Thư. Lê Cẩm Minh", email:"thulcm@vng.com.vn", role:"role_admin_sub", initials:"T", color:["#ffd479","#ff9f0a"] },
+    { name:"Starters", email:"starter_domain@vng.com.vn", role:"role_viewer", initials:"S", color:["#a0f0c0","#1f9d55"] },
   ];
   var INTEGRATIONS = [
     { id:"teams", name:"Microsoft Teams", desc_en:"Post alerts & reports to channels", desc_vi:"Đăng cảnh báo & báo cáo vào kênh", status:"future", glyph:"T", grad:["#6264a7","#4b4d8f"] },

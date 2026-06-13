@@ -65,12 +65,14 @@ function SettingsPage({ t, lang, setLang }) {
         action={<button className="btn btn-secondary btn-sm" onClick={()=>showToast(t("future_note"))}><Icon name="plus" size={15} stroke={2.2}/>{t("set_invite")}</button>}>
         {window.DATA.TEAM.map((m, i) => (
           <div key={m.email} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 0", borderTop: i>0?"1px solid var(--hairline)":"none" }}>
-            <div className="set-avatar" style={{ background:`linear-gradient(145deg, ${m.color[0]}, ${m.color[1]})` }}>{m.initials}</div>
+            {m.avatar
+              ? <img className="set-avatar" src={m.avatar} alt={m.name} style={{ objectFit:"cover" }}/>
+              : <div className="set-avatar" style={{ background:`linear-gradient(145deg, ${m.color[0]}, ${m.color[1]})` }}>{m.initials}</div>}
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:14, fontWeight:600 }}>{m.name}</div>
               <div style={{ fontSize:12.5, color:"var(--text-3)" }}>{m.email}</div>
             </div>
-            <span className={"badge " + (m.role==="role_admin"?"badge-neutral":"badge-muted")}>{t(m.role)}</span>
+            <span className={"badge " + (m.role.indexOf("role_admin")===0?"badge-neutral":"badge-muted")}>{t(m.role)}</span>
           </div>
         ))}
       </SettingsCard>

@@ -92,6 +92,21 @@ def test_set_active_switches_app(tmp_path):
     client.post("/api/active", json={"app_id": "com.zing.zalo"})
     assert registry.get_active() == "com.zing.zalo"
 
+def test_run_now_starts_active_app(tmp_path):
+    calls = []
+    def fake_run(store):
+        calls.append(store.load_config().get("title"))
+
+    client, registry, _ = make_client(tmp_path, run_fn=fake_run)
+    client.post("/api/track", json={"title": "Zalo", "gp_id": "com.zing.zalo"})
+    calls.clear()
+
+    resp = client.post("/run")
+
+    assert resp.status_code == 200
+    assert resp.get_json()["ok"] is True
+    assert calls == ["Zalo"]
+
 def test_patch_todo_status(tmp_path):
     client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)
     client.post("/api/track", json={"title": "Zalo", "gp_id": "com.zing.zalo"})
@@ -163,6 +178,21 @@ def test_apps_recovers_stale_analyzing_meta(tmp_path):
 
     assert app["status"] == "idle"
     assert app["progress"] == {"done": 330, "total": 500}
+    assert factory("918751511").load_meta()["status"] == "idle"
+
+def test_apps_recovers_orphan_queued_meta(tmp_path):
+    client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)
+    client.post("/api/track", json={"title": "Momo", "as_id": "918751511"})
+    factory("918751511").save_meta({
+        "status": "queued",
+        "progress": {"done": 0, "total": 0},
+        "last_updated": datetime.now(timezone.utc).isoformat(),
+    })
+
+    body = client.get("/api/apps").get_json()
+    app = body["apps"][0]
+
+    assert app["status"] == "idle"
     assert factory("918751511").load_meta()["status"] == "idle"
 
 def test_stats_keeps_recent_analyzing_meta(tmp_path):

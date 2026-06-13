@@ -1,5 +1,6 @@
 import os
 import glob
+import queue
 import unicodedata
 import threading
 from collections import Counter
@@ -8,6 +9,10 @@ from flask import Flask, jsonify, request, send_from_directory
 
 DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), "dashboard")
 ANALYZING_STALE_AFTER = timedelta(minutes=10)
+_RUN_QUEUE = queue.Queue()
+_QUEUE_LOCK = threading.Lock()
+_QUEUED_KEYS = set()
+_QUEUE_WORKER_STARTED = False
 
 
 def _asset_build_stamp():
@@ -23,11 +28,76 @@ def _asset_build_stamp():
     except Exception:
         return "1"
 
-def _default_run_fn(store):
-    """Production runner: kick the pipeline off in a background thread so the
-    HTTP request returns immediately and the dashboard can poll for progress."""
+def _now():
+    return datetime.now(timezone.utc).isoformat()
+
+def _store_queue_key(store):
+    try:
+        cfg = store.load_config() or {}
+    except Exception:
+        cfg = {}
+    return str(
+        cfg.get("app_id") or cfg.get("gp_id") or cfg.get("as_id")
+        or cfg.get("title") or id(store)
+    )
+
+def _mark_queued(store):
+    try:
+        current = store.load_meta() or {}
+        store.save_meta({
+            "status": "queued",
+            "progress": current.get("progress", {"done": 0, "total": 0}),
+            "last_updated": _now(),
+        })
+    except Exception:
+        pass
+
+def _queue_worker():
     from pipeline import run_pipeline
-    threading.Thread(target=lambda: run_pipeline(store=store), daemon=True).start()
+    import time
+    while True:
+        key, store = _RUN_QUEUE.get()
+        try:
+            while True:
+                result = run_pipeline(store=store)
+                if not (isinstance(result, dict) and result.get("skipped")):
+                    break
+                time.sleep(2)
+        except Exception as exc:
+            try:
+                current = store.load_meta() or {}
+                store.save_meta({
+                    "status": "idle",
+                    "progress": current.get("progress", {"done": 0, "total": 0}),
+                    "last_updated": _now(),
+                    "error": str(exc),
+                })
+            except Exception:
+                pass
+        finally:
+            with _QUEUE_LOCK:
+                _QUEUED_KEYS.discard(key)
+            _RUN_QUEUE.task_done()
+
+def _ensure_queue_worker():
+    global _QUEUE_WORKER_STARTED
+    with _QUEUE_LOCK:
+        if _QUEUE_WORKER_STARTED:
+            return
+        threading.Thread(target=_queue_worker, daemon=True).start()
+        _QUEUE_WORKER_STARTED = True
+
+def _default_run_fn(store):
+    """Production runner: enqueue pipeline work so multiple app selections do
+    not get dropped by the pipeline's single-run lock."""
+    _ensure_queue_worker()
+    key = _store_queue_key(store)
+    with _QUEUE_LOCK:
+        if key in _QUEUED_KEYS:
+            return
+        _QUEUED_KEYS.add(key)
+    _mark_queued(store)
+    _RUN_QUEUE.put((key, store))
 
 def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
     if registry is None:
@@ -64,7 +134,8 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
 
     def normalize_meta(store):
         meta = store.load_meta()
-        if meta.get("status") != "analyzing":
+        status = meta.get("status")
+        if status not in ("analyzing", "queued"):
             return meta
         raw = meta.get("last_updated")
         try:
@@ -73,13 +144,25 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
                 last = last.replace(tzinfo=timezone.utc)
         except (TypeError, ValueError):
             last = None
+        if status == "queued":
+            with _QUEUE_LOCK:
+                is_queued_in_this_process = _store_queue_key(store) in _QUEUED_KEYS
+            if is_queued_in_this_process:
+                return meta
+            recovered = dict(meta)
+            recovered["status"] = "idle"
+            recovered["last_updated"] = datetime.now(timezone.utc).isoformat()
+            recovered["error"] = "Queued crawl was interrupted before it started."
+            store.save_meta(recovered)
+            return recovered
+
         if last and datetime.now(timezone.utc) - last <= ANALYZING_STALE_AFTER:
             return meta
 
         recovered = dict(meta)
         recovered["status"] = "idle"
         recovered["last_updated"] = datetime.now(timezone.utc).isoformat()
-        recovered["error"] = "Crawl worker stopped before finishing classification."
+        recovered["error"] = "Crawl worker stopped before finishing."
         store.save_meta(recovered)
         return recovered
 
@@ -207,13 +290,12 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
 def _start_scheduler():
     import schedule
     import time
-    from pipeline import run_pipeline
     from storage import get_store, get_registry
 
     def run_active():
         aid = get_registry().get_active()
         if aid:
-            run_pipeline(store=get_store(aid))
+            _default_run_fn(get_store(aid))
 
     schedule.every(1).hours.do(run_active)
     while True:

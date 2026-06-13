@@ -16,6 +16,7 @@ function App() {
   useEffect(() => { localStorage.setItem("arm_nav", navCollapsed ? "1" : "0"); }, [navCollapsed]);
 
   const dismissToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
+  const isBusyStatus = (status) => status === "analyzing" || status === "queued";
 
   // Global poll: keep the gallery's per-app crawl status fresh and raise an
   // Apple-style toast the moment any app's scrape transitions analyzing -> idle.
@@ -29,7 +30,7 @@ function App() {
         if (cancelled) return;
         apps.forEach(a => {
           const was = prevStatus[a.app_id];
-          if (primed && was === "analyzing" && a.status === "idle") {
+          if (primed && isBusyStatus(was) && a.status === "idle") {
             const dict = window.DATA.I18N[langRef.current];
             const spec = window.DATA.APPS[a.app_id] || {};
             const n = (a.progress && a.progress.total) || 0;
@@ -45,7 +46,7 @@ function App() {
         // Bump only when statuses (or in-progress counts) actually changed.
         const sig = apps.map(a => a.app_id + ":" + a.status + ":" + ((a.progress && a.progress.done) || 0)).join("|");
         if (sig !== lastSig) { lastSig = sig; setAvailVersion(v => v + 1); }
-        const anyAnalyzing = apps.some(a => a.status === "analyzing");
+        const anyAnalyzing = apps.some(a => isBusyStatus(a.status));
         timer = setTimeout(poll, anyAnalyzing ? 2500 : 6000);
       }).catch(() => { if (!cancelled) timer = setTimeout(poll, 6000); });
     };
@@ -141,9 +142,16 @@ function App() {
   };
 
   // Called from Screen 1 when user clicks an app that is currently scraping
-  const handleOpenCrawling = (appId) => {
+  const handleOpenCrawling = (appId, startRun = false) => {
     setActiveApp(appId);
-    window.ARM_Bridge.setActive(appId).catch(() => {});
+    const activation = window.ARM_Bridge.setActive(appId);
+    if (startRun) {
+      activation
+        .then(() => window.ARM_Bridge.runNow())
+        .catch(console.warn);
+    } else {
+      activation.catch(() => {});
+    }
     go("crawling");
   };
 

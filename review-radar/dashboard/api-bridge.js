@@ -371,6 +371,10 @@
       return this._post('/api/active', { app_id: appId });
     },
 
+    runNow: function() {
+      return this._post('/run', {});
+    },
+
     patchTodo: function(appId, todoId, patch) {
       var q = appId ? ('?app_id=' + encodeURIComponent(appId)) : '';
       return fetch('/api/todos/' + encodeURIComponent(todoId) + q, {

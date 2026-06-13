@@ -68,8 +68,9 @@ function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, ava
   // this screen (scraping apps appear/finish) without remounting / losing search.
   void availVersion;
   const allAvailable = window.DATA.AVAILABLE || [];
-  const scrapingApps = allAvailable.filter(r => r.status === "analyzing");
-  const available = allAvailable.filter(r => r.status !== "analyzing");
+  const isBusyStatus = status => status === "analyzing" || status === "queued";
+  const scrapingApps = allAvailable.filter(r => isBusyStatus(r.status));
+  const available = allAvailable.filter(r => !isBusyStatus(r.status));
 
   return (
     <div style={{ maxWidth:1080, margin:"0 auto", padding:"54px 48px 80px" }}>
@@ -247,9 +248,10 @@ function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, ava
             {available.map((row, i) => {
               const a = window.DATA.APPS[row.app];
               if (!a) return null;
+              const needsCrawl = (row.totalReviews || 0) === 0 && (row.lastUpdated == null || row.lastUpdated >= 999);
               return (
                 <button key={row.app} className="card"
-                  onClick={() => onOpenDashboard(row.app)}
+                  onClick={() => needsCrawl ? onOpenCrawling(row.app, true) : onOpenDashboard(row.app)}
                   style={{ padding:18, textAlign:"left", display:"flex", flexDirection:"column", gap:14,
                     animation:`fadeUp .5s cubic-bezier(0.22,0.61,0.36,1) ${i*0.05}s both`,
                     transition:"transform .18s ease, box-shadow .18s, border-color .18s" }}
@@ -276,7 +278,7 @@ function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, ava
                       <div style={{ fontSize:11.5, color:"var(--text-3)", fontWeight:500 }}>{t("total_reviews")}</div>
                     </div>
                     <span style={{ display:"inline-flex", alignItems:"center", gap:3, fontSize:13, fontWeight:600, color:"var(--accent)" }}>
-                      {t("open_dashboard")}<Icon name="chevron" size={15} stroke={2.2}/>
+                      {needsCrawl ? t("start_crawl") : t("open_dashboard")}<Icon name="chevron" size={15} stroke={2.2}/>
                     </span>
                   </div>
                 </button>

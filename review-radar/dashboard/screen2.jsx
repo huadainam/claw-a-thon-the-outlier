@@ -10,6 +10,7 @@ function Crawling({ t, app, onDone, onBack }) {
   useEffect(() => {
     let cancelled = false;
     let seenAnalyzing = false;
+    let idleBeforeStart = 0;
 
     const poll = async () => {
       if (cancelled) return;
@@ -18,10 +19,14 @@ function Crawling({ t, app, onDone, onBack }) {
         const done  = (meta.progress && meta.progress.done)  || 0;
         const total = (meta.progress && meta.progress.total) || 0;
 
-        if (meta.status === "analyzing") {
+        if (meta.status === "queued") {
+          setActive(1);
+          setProgress(100);
+        } else if (meta.status === "analyzing") {
           // Scraping is done by the time the backend reports "analyzing";
           // done/total is the live classification progress.
           seenAnalyzing = true;
+          idleBeforeStart = 0;
           setCounts({ done, total });
           if (total > 0 && done >= total) {
             setActive(3); setProgress(100);              // all classified → building dashboard
@@ -30,6 +35,13 @@ function Crawling({ t, app, onDone, onBack }) {
             setProgress(total > 0 ? Math.round(done / total * 100) : 0);
           }
         } else if (meta.status === "idle") {
+          if (!seenAnalyzing && done === 0 && total === 0 && idleBeforeStart < 3) {
+            idleBeforeStart += 1;
+            setActive(1);
+            setProgress(100);
+            if (!cancelled) setTimeout(poll, 2000);
+            return;
+          }
           setActive(3);
           setProgress(100);
           if (seenAnalyzing) setCounts(c => ({ done: c.total || c.done, total: c.total }));

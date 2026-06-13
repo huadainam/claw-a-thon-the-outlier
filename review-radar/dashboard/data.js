@@ -1,4 +1,4 @@
-/* ============ Mock data + i18n for App Review Monitor ============ */
+/* ============ Mock data + i18n for Review Radar ============ */
 (function () {
   // ---------- App glyph specs — pre-seeded for known VN apps ----------
   // The api-bridge.js will add real tracked apps dynamically.
@@ -126,7 +126,7 @@
       compare_cta:"Compare", compare_min:"Select at least 2 apps", selected_count:"selected", compare_again:"Change selection", export_compare:"Export comparison",
       m_health:"Health score", m_rating:"Avg. rating", m_total:"Total reviews", m_today:"Reviews today", m_critical:"Critical bugs", m_positive:"Positive sentiment", m_trend:"Volume trend",
       leaderboard:"Overall ranking", best:"Best", metric:"Metric", sentiment_split:"Sentiment split", rating_dist:"Rating distribution", health_trend:"Health trend (14d)", cat_compare:"Category mix", at_a_glance:"At a glance",
-      team_title:"The Outliers", team_sub:"The people behind App Review Monitor.", nav_team:"Team",
+      team_title:"The Outliers", team_sub:"The people behind Review Radar.", nav_team:"Team",
       role_pic:"Project Lead · PIC", role_collab:"Collaborator", built_by:"Designed & built by", contributions:"Contributions",
       pic_name:"The Outliers", pic_desc:"Owns the product end to end — research, UX, visual design, prototyping and the full build of every screen in this tool.",
       collab_name:"Support Contributor", collab_desc:"Assists with supporting tasks, mock data, QA and review feedback throughout the project.",
@@ -211,7 +211,7 @@
       compare_cta:"So sánh", compare_min:"Chọn ít nhất 2 ứng dụng", selected_count:"đã chọn", compare_again:"Đổi lựa chọn", export_compare:"Xuất bảng so sánh",
       m_health:"Điểm sức khỏe", m_rating:"Điểm đánh giá TB", m_total:"Tổng đánh giá", m_today:"Đánh giá hôm nay", m_critical:"Bug nghiêm trọng", m_positive:"Cảm xúc tích cực", m_trend:"Xu hướng lượng",
       leaderboard:"Xếp hạng tổng thể", best:"Tốt nhất", metric:"Chỉ số", sentiment_split:"Tỉ lệ cảm xúc", rating_dist:"Phân bố sao", health_trend:"Xu hướng sức khỏe (14n)", cat_compare:"Cơ cấu danh mục", at_a_glance:"Tổng quan nhanh",
-      team_title:"The Outliers", team_sub:"Những người đứng sau App Review Monitor.", nav_team:"Đội ngũ",
+      team_title:"The Outliers", team_sub:"Những người đứng sau Review Radar.", nav_team:"Đội ngũ",
       role_pic:"Trưởng dự án · PIC", role_collab:"Cộng tác viên", built_by:"Thiết kế & phát triển bởi", contributions:"Đóng góp",
       pic_name:"The Outliers", pic_desc:"Phụ trách sản phẩm từ đầu đến cuối — nghiên cứu, UX, thiết kế giao diện, dựng prototype và build toàn bộ màn hình trong công cụ này.",
       collab_name:"Cộng tác viên hỗ trợ", collab_desc:"Hỗ trợ các công việc phụ, dữ liệu mẫu, kiểm thử và góp ý trong suốt dự án.",

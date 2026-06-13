@@ -1,4 +1,4 @@
-/* ============ App Review Monitor — Apple-inspired design tokens ============ */
+/* ============ Review Radar — Apple-inspired design tokens ============ */
 :root {
   /* Surfaces */
   --bg: #f5f5f7;
@@ -133,9 +133,8 @@ input { font-family: inherit; }
 .sb-brand { display: flex; align-items: center; gap: 11px; padding: 6px 8px 22px; }
 .sb-logo {
   width: 34px; height: 34px; border-radius: 9px;
-  background: linear-gradient(160deg, #0a84ff, #0058c8);
-  display: grid; place-items: center; flex-shrink: 0;
-  box-shadow: 0 3px 8px rgba(0,113,227,0.32);
+  object-fit: cover; display: block; flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.18);
 }
 .sb-brand-text { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
 .sb-brand-sub { font-size: 11px; color: var(--text-3); font-weight: 500; }

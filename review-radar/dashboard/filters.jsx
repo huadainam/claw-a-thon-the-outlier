@@ -68,7 +68,7 @@ function ReviewFilterBar({ t, filters, setFilters }) {
       <FilterSelect label={t("filter_status") || "Status"} value={filters.status} options={stOpts} onChange={v=>set("status",v)} t={t}/>
       <FilterSelect label={t("filter_sentiment")} value={filters.sentiment} options={senOpts}   onChange={v=>set("sentiment",v)} t={t}/>
       {anyActive && (
-        <button className="btn btn-ghost btn-xs" onClick={() => setFilters({ rating:null, cat:null, priority:null, status:null, sentiment:null, platform:null })}
+        <button className="btn btn-ghost btn-xs" onClick={() => setFilters({ rating:null, cat:null, priority:null, status:null, sentiment:null, platform:null, actionId:null })}
           style={{ color:"var(--text-2)" }}><Icon name="x" size={13} stroke={2.4}/>{t("clear_all")}</button>
       )}
     </div>

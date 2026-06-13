@@ -150,12 +150,10 @@ function App() {
     return (
       <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", background:"var(--bg)" }}>
         <div style={{ textAlign:"center" }}>
-          <div style={{ width:48, height:48, borderRadius:13, background:"linear-gradient(160deg,#0a84ff,#0058c8)",
-            display:"grid", placeItems:"center", margin:"0 auto 18px",
-            boxShadow:"0 3px 12px rgba(0,113,227,0.35)" }}>
-            <Icon name="sparkle" size={22} stroke={2} style={{ color:"#fff" }}/>
-          </div>
-          <div style={{ fontSize:16, fontWeight:700, letterSpacing:"-0.02em" }}>App Review Monitor</div>
+          <img src="assets/app-icon.png" alt="Review Radar"
+            style={{ width:48, height:48, borderRadius:13, objectFit:"cover", display:"block", margin:"0 auto 18px",
+              boxShadow:"0 3px 12px rgba(0,0,0,0.22)" }}/>
+          <div style={{ fontSize:16, fontWeight:700, letterSpacing:"-0.02em" }}>Review Radar</div>
           <div style={{ fontSize:13, color:"var(--text-3)", marginTop:4 }}>Loading…</div>
           <div style={{ marginTop:18, display:"flex", justifyContent:"center" }}>
             <div style={{ width:20, height:20, borderRadius:"50%", border:"2px solid rgba(0,113,227,0.2)", borderTopColor:"var(--accent)", animation:"spin 0.8s linear infinite" }}></div>

@@ -1,4 +1,104 @@
 /* ============ Screen 3: Review Monitoring Dashboard ============ */
+function reviewMatchesFilters(review, filters) {
+  return (
+    (filters.rating == null || review.rating === filters.rating) &&
+    (filters.cat == null || review.cat === filters.cat) &&
+    (filters.priority == null || review.priority === filters.priority) &&
+    (filters.status == null || review.status === filters.status) &&
+    (filters.sentiment == null || review.sentiment === filters.sentiment) &&
+    (filters.platform == null || review.platform === filters.platform) &&
+    (filters.actionId == null || (review.actionIds || []).includes(filters.actionId))
+  );
+}
+
+function dashboardCount(value) {
+  const n = Number(value) || 0;
+  const abs = Math.abs(n);
+  if (abs >= 1000000000) return (n / 1000000000).toFixed(1) + "B";
+  if (abs >= 1000000) return (n / 1000000).toFixed(1) + "M";
+  return Math.round(n).toLocaleString();
+}
+
+function reviewDayKey(review) {
+  const raw = review && review.date;
+  if (!raw || raw === "—") return "";
+  const d = new Date(String(raw).replace(" ", "T"));
+  if (!Number.isNaN(d.getTime())) return d.toLocaleDateString("en-CA");
+  return String(raw).slice(0, 10);
+}
+
+function makeFilteredKpis(reviews, actions) {
+  const total = reviews.length;
+  const todayKey = new Date().toLocaleDateString("en-CA");
+  const today = reviews.filter(r => reviewDayKey(r) === todayKey).length;
+  const bugs = reviews.filter(r => r.cat === "bug").length;
+  const fixed = actions.filter(a => a.status === "fixed").length;
+  const pending = actions.filter(a => a.status === "open").length;
+  const positive = reviews.filter(r => r.sentiment === "positive").length;
+  const negative = reviews.filter(r => r.sentiment === "negative").length + bugs;
+  const denom = Math.max(1, reviews.length);
+  const healthScore = Math.round(Math.max(0, Math.min(100, ((positive - negative * 0.5) / denom * 50) + 70)));
+  return [
+    { id:"total",    value:dashboardCount(total), raw:total, icon:"reviews", trend:null, sub:"all_time", tone:"neutral" },
+    { id:"today",    value:dashboardCount(today), raw:today, icon:"calendar", trend:null, sub:"vs_yesterday", tone:"neutral" },
+    { id:"critical", value:dashboardCount(bugs), raw:bugs, icon:"alert", trend:null, sub:"need_fix", tone:"critical", invert:true },
+    { id:"fixed",    value:dashboardCount(fixed), raw:fixed, icon:"check", trend:null, sub:"last_30d", tone:"positive" },
+    { id:"pending",  value:dashboardCount(pending), raw:pending, icon:"flag", trend:null, sub:"action_items", tone:"warning", invert:true },
+    { id:"health",   value:String(healthScore), raw:healthScore, icon:"heart", trend:null, sub:"out_of_100", tone:"positive", suffix:"/100" },
+  ];
+}
+
+function makeFilteredCategories(reviews) {
+  const colors = {
+    positive:"var(--cat-positive)",
+    feedback:"var(--cat-feedback)",
+    bug:"var(--cat-bug)",
+    negative:"var(--cat-negative)",
+    feature:"var(--cat-feature)",
+    criticalbug:"var(--cat-criticalbug)",
+    spam:"var(--cat-spam)",
+  };
+  const byCat = {};
+  reviews.forEach(r => {
+    const id = r.cat || "feedback";
+    if (!byCat[id]) byCat[id] = { id, count:0, color:colors[id] || "var(--cat-feedback)" };
+    byCat[id].count += 1;
+  });
+  return Object.values(byCat).sort((a, b) => b.count - a.count);
+}
+
+function makeFilteredTrend(reviews) {
+  const byDay = {};
+  reviews.forEach(r => {
+    const day = reviewDayKey(r);
+    if (!day) return;
+    if (!byDay[day]) byDay[day] = { reviews:0, critical:0, healthTotal:0 };
+    byDay[day].reviews += 1;
+    if (r.cat === "bug") byDay[day].critical += 1;
+    byDay[day].healthTotal += (Number(r.rating) || 3) * 20;
+  });
+  return Object.keys(byDay).sort().map(day => {
+    const d = new Date(day + "T00:00:00");
+    const row = byDay[day];
+    return {
+      date:d,
+      label:d.getDate() + "/" + (d.getMonth() + 1),
+      reviews:row.reviews,
+      critical:row.critical,
+      health:Math.round(row.healthTotal / row.reviews),
+    };
+  });
+}
+
+function actionMatchesReviewFilters(action, filters, filteredReviews) {
+  if (filters.priority != null && action.priority !== filters.priority) return false;
+  if (filters.status != null && action.status !== filters.status) return false;
+  if (filters.cat != null && action.cat !== filters.cat) return false;
+  const reviewDriven = [filters.rating, filters.sentiment, filters.platform, filters.actionId].some(v => v != null);
+  if (!reviewDriven) return true;
+  return filteredReviews.some(r => (r.actionIds || []).includes(action.id));
+}
+
 function Dashboard({ t, app, onBack, view, onNav, onDataChanged }) {
   const a = window.DATA.APPS[app];
   const [range, setRange] = useState(30);
@@ -10,6 +110,13 @@ function Dashboard({ t, app, onBack, view, onNav, onDataChanged }) {
   const [reviewCtx, setReviewCtx] = useState(null);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(false), 2600); };
+  const filterActive = Object.values(reviewFilters).some(v => v != null);
+  const filteredReviews = window.DATA.REVIEWS.filter(r => reviewMatchesFilters(r, reviewFilters));
+  const filteredActions = window.DATA.ACTIONS.filter(a => actionMatchesReviewFilters(a, reviewFilters, filteredReviews));
+  const overviewActions = filterActive ? filteredActions : window.DATA.ACTIONS;
+  const overviewKpis = filterActive ? makeFilteredKpis(filteredReviews, overviewActions) : window.DATA.KPIS;
+  const overviewCategories = filterActive ? makeFilteredCategories(filteredReviews) : window.DATA.CATEGORIES;
+  const overviewTrend = filterActive ? makeFilteredTrend(filteredReviews) : window.DATA.TREND;
 
   // Jump to the Reviews page filtered to the category of an action item
   const viewReviewsFor = (action) => {
@@ -29,7 +136,7 @@ function Dashboard({ t, app, onBack, view, onNav, onDataChanged }) {
           <React.Fragment>
             {/* KPI cards */}
             <div style={{ display:"grid", gridTemplateColumns:"repeat(6, 1fr)", gap:14, marginBottom:20 }}>
-              {window.DATA.KPIS.map((k, i) => <KpiCard key={k.id} k={k} t={t} i={i}/>)}
+              {overviewKpis.map((k, i) => <KpiCard key={k.id} k={k} t={t} i={i}/>)}
             </div>
 
             {/* Category + Trend */}
@@ -37,7 +144,7 @@ function Dashboard({ t, app, onBack, view, onNav, onDataChanged }) {
               <div className="card fade-up" style={{ padding:"20px 22px", animationDelay:".1s" }}>
                 <CardHead title={t("cat_title")} sub={t("cat_sub")}/>
                 <div style={{ marginTop:16 }}>
-                  <DonutChart data={window.DATA.CATEGORIES} t={t} activeCat={reviewFilters.cat}
+                  <DonutChart data={overviewCategories} t={t} activeCat={reviewFilters.cat}
                     onSelect={(c) => setReviewFilters({ ...reviewFilters, cat: c })}/>
                 </div>
               </div>
@@ -58,7 +165,7 @@ function Dashboard({ t, app, onBack, view, onNav, onDataChanged }) {
                   </div>
                 </div>
                 <div style={{ marginTop:18 }}>
-                  <TrendChart data={window.DATA.TREND} t={t} range={range}/>
+                  <TrendChart data={overviewTrend} t={t} range={range}/>
                 </div>
               </div>
             </div>
@@ -70,7 +177,12 @@ function Dashboard({ t, app, onBack, view, onNav, onDataChanged }) {
                 <button className="btn btn-ghost btn-sm" onClick={() => onNav("actions")}>{t("view_all")}<Icon name="chevron" size={15} stroke={2.2}/></button>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                {window.DATA.ACTIONS.slice(0, 5).map((it) => <ActionRow key={it.id} app={app} it={it} t={t} onViewReviews={viewReviewsFor} onDataChanged={onDataChanged}/>)}
+                {overviewActions.slice(0, 5).map((it) => <ActionRow key={it.id} app={app} it={it} t={t} onViewReviews={viewReviewsFor} onDataChanged={onDataChanged}/>)}
+                {overviewActions.length === 0 && (
+                  <div style={{ padding:"26px 12px", textAlign:"center", color:"var(--text-3)", fontSize:14, fontWeight:500 }}>
+                    {t("no_actions")}
+                  </div>
+                )}
               </div>
             </div>
 

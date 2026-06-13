@@ -130,8 +130,8 @@ function Sidebar({ screen, lang, setLang, t, go, activeApp, dashSection, onDashN
   return (
     <aside className={"sidebar" + (collapsed ? " collapsed" : "")}>
       <div className="sb-brand">
-        <div className="sb-logo"><Icon name="sparkle" size={19} stroke={2} style={{color:"#fff"}}/></div>
-        {!collapsed && <div className="sb-brand-text">App Review<br/>Monitor</div>}
+        <img className="sb-logo" src="assets/app-icon.png" alt="Review Radar"/>
+        {!collapsed && <div className="sb-brand-text">Review<br/>Radar</div>}
         <button className="sb-burger" onClick={onToggleNav} title={t("toggle_nav")} aria-label={t("toggle_nav")}>
           <Icon name="menu" size={18}/>
         </button>

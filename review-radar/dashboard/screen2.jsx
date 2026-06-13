@@ -5,11 +5,13 @@ function Crawling({ t, app, onDone, onBack }) {
   const [progress, setProgress] = useState(0);
   const [counts, setCounts] = useState({ done: 0, total: 0 });  // reviews classified / total
   const [notified, setNotified] = useState(false);
+  const [canSkip, setCanSkip] = useState(false);   // allow bypassing the wait after a bit
   const a = window.DATA.APPS[app] || { name: app };
 
   useEffect(() => {
     let cancelled = false;
     let seenAnalyzing = false;
+    setCanSkip(false);
 
     const poll = async () => {
       if (cancelled) return;
@@ -47,8 +49,10 @@ function Crawling({ t, app, onDone, onBack }) {
     setActive(0); setProgress(0);
     const t1 = setTimeout(() => { setActive(0); setProgress(100); }, 600);
     const t2 = setTimeout(poll, 1400);
+    // After a short wait, let the user bypass the rest and open the dashboard now.
+    const tSkip = setTimeout(() => setCanSkip(true), 8000);
 
-    return () => { cancelled = true; clearTimeout(t1); clearTimeout(t2); };
+    return () => { cancelled = true; clearTimeout(t1); clearTimeout(t2); clearTimeout(tSkip); };
   }, [app]);
 
   const totalProgress = ((active + progress / 100) / STEPS.length) * 100;
@@ -114,9 +118,17 @@ function Crawling({ t, app, onDone, onBack }) {
 
         <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
           <button className="btn btn-secondary" onClick={onBack}><Icon name="arrowLeft" size={16}/>{t("back_apps")}</button>
-          <button className={`btn ${notified ? "btn-secondary" : "btn-primary"}`} onClick={() => setNotified(true)}>
-            <Icon name="bell" size={16}/>{notified ? "✓ " : ""}{t("notify")}</button>
+          {canSkip ? (
+            <button className="btn btn-primary" onClick={onDone}>
+              {t("skip_now")}<Icon name="chevron" size={16} stroke={2.2}/></button>
+          ) : (
+            <button className={`btn ${notified ? "btn-secondary" : "btn-primary"}`} onClick={() => setNotified(true)}>
+              <Icon name="bell" size={16}/>{notified ? "✓ " : ""}{t("notify")}</button>
+          )}
         </div>
+        {canSkip && (
+          <p className="fade-in" style={{ fontSize:12.5, color:"var(--text-3)", textAlign:"center", marginTop:12 }}>{t("skip_hint")}</p>
+        )}
       </div>
     </div>
   );

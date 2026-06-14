@@ -36,6 +36,10 @@ def _merge_candidates(query, gp_list, as_list):
                 "title": c["title"], "developer": c.get("developer", ""),
                 "icon": c.get("icon", ""), "gp_id": None, "as_id": None, "stores": [],
             })
+            if not app.get("icon") and c.get("icon"):
+                app["icon"] = c["icon"]
+            if not app.get("developer") and c.get("developer"):
+                app["developer"] = c["developer"]
             if c["store"] == "google_play":
                 app["gp_id"] = c["app_id"]
                 if "google_play" not in app["stores"]:

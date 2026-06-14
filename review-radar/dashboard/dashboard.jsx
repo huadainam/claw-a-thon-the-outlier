@@ -228,9 +228,8 @@ function Dashboard({ t, app, onBack, view, onNav, onDataChanged }) {
         )}
       </div>
 
-      <ConfigureScheduleModal t={t} app={app} open={showSchedule} freq={freq}
-        onClose={() => setShowSchedule(false)}
-        onSave={(f) => { setFreq(f); setShowSchedule(false); showToast(t("schedule_saved")); }}/>
+      <ConfigureScheduleModal t={t} app={app} open={showSchedule}
+        onClose={() => setShowSchedule(false)}/>
 
       {toast && (
         <div className="toast"><Icon name="checkCircle" size={17} stroke={2.2} style={{ color:"var(--positive)" }}/>{toast}</div>
@@ -551,16 +550,13 @@ function CardHead({ title, sub }) {
 }
 
 /* ---------- Configure crawl schedule modal ---------- */
-function ConfigureScheduleModal({ t, app, open, freq, onClose, onSave }) {
+function ConfigureScheduleModal({ t, app, open, onClose }) {
   const a = window.DATA.APPS[app];
-  const [sel, setSel] = useState(freq);
-  const [notify, setNotify] = useState(true);
-  const [pause, setPause] = useState(false);
-  // reset local state each time it opens
-  useEffect(() => { if (open) { setSel(freq); } }, [open, freq]);
   if (!open) return null;
 
-  const friendly = t((FREQS.find(f => f.id === sel) || FREQS[1]).key);
+  const appRow = window.DATA.AVAILABLE.find(row => row.app === app);
+  const hourlyEnabled = !!(appRow && appRow.hourlyRefreshEnabled === true);
+  const statusText = hourlyEnabled ? t("hourly_on") : t("hourly_off");
 
   return (
     <Modal open={open} onClose={onClose} width={480}>
@@ -589,31 +585,42 @@ function ConfigureScheduleModal({ t, app, open, freq, onClose, onSave }) {
           </div>
         </div>
 
-        {/* Frequency */}
-        <div style={{ fontSize:12.5, fontWeight:700, color:"var(--text-2)", textTransform:"uppercase", letterSpacing:"0.03em", marginBottom:10 }}>{t("freq_label")}</div>
-        <div className="freq-grid">
-          {FREQS.map(f => (
-            <button key={f.id} className="freq-pill" data-on={sel === f.id} onClick={() => setSel(f.id)}>
-              <div className="fp-val">{f.val}</div>
-              <div className="fp-unit">{f.unit}</div>
-            </button>
-          ))}
-        </div>
-        <div style={{ display:"flex", alignItems:"center", gap:7, marginTop:12, fontSize:13, color:"var(--text-2)" }}>
-          <Icon name="clock" size={14} style={{ color:"var(--accent)" }}/>
-          <span><strong style={{ color:"var(--text)", fontWeight:600 }}>{friendly}</strong> · {t("schedule_help")}</span>
-        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:14,
+            padding:"14px 15px", borderRadius:13, border:"1px solid var(--hairline)", background:"#fff" }}>
+            <div>
+              <div style={{ fontSize:12.5, fontWeight:700, color:"var(--text-2)", textTransform:"uppercase", letterSpacing:"0.03em", marginBottom:5 }}>
+                {t("crawl_freq")}
+              </div>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:7, fontSize:14.5, fontWeight:700,
+                color:hourlyEnabled ? "var(--accent)" : "var(--text-2)" }}>
+                <Icon name="refresh" size={16} stroke={2}/>
+                {statusText}
+              </div>
+            </div>
+            <span className="badge" style={{
+              background:hourlyEnabled ? "var(--accent-soft)" : "rgba(0,0,0,0.05)",
+              color:hourlyEnabled ? "var(--accent)" : "var(--text-2)",
+              fontWeight:700,
+            }}>
+              {hourlyEnabled ? t("refresh_filter_on") : t("refresh_filter_off")}
+            </span>
+          </div>
 
-        {/* Options */}
-        <div style={{ fontSize:12.5, fontWeight:700, color:"var(--text-2)", textTransform:"uppercase", letterSpacing:"0.03em", margin:"24px 0 8px" }}>{t("opt_section")}</div>
-        <OptionRow label={t("opt_notify")} desc={t("opt_notify_d")} checked={notify} onChange={setNotify}/>
-        <OptionRow label={t("opt_pause")} desc={t("opt_pause_d")} checked={pause} onChange={setPause}/>
+          <div style={{ display:"flex", alignItems:"flex-start", gap:11, padding:"15px",
+            borderRadius:13, background:"var(--accent-soft)", color:"var(--accent)" }}>
+            <Icon name="refresh" size={18} stroke={2.2} style={{ flexShrink:0, marginTop:1 }}/>
+            <div>
+              <div style={{ fontSize:14, fontWeight:700, marginBottom:3 }}>{t("schedule_admin_title")}</div>
+              <div style={{ fontSize:13.5, lineHeight:1.45, color:"var(--text-2)" }}>{t("hourly_admin_contact")}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
       <div style={{ display:"flex", justifyContent:"flex-end", gap:10, padding:"18px 24px 22px" }}>
-        <button className="btn btn-secondary" onClick={onClose}>{t("cancel")}</button>
-        <button className="btn btn-primary" onClick={() => onSave(sel)}>{t("save_changes")}</button>
+        <button className="btn btn-primary" onClick={onClose}>{t("close")}</button>
       </div>
     </Modal>
   );

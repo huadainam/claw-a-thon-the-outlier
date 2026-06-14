@@ -102,7 +102,10 @@
   function makeAvailableEntry(ba, stats) {
     var s = stats || {};
     var byLabel = (s.by_label) || {};
-    var total   = (s.total != null) ? s.total : (ba.total_reviews || ba.totalReviews || 0);
+    var total   = (s.total != null)
+      ? s.total
+      : (ba.total_reviews != null ? ba.total_reviews : (ba.totalReviews != null ? ba.totalReviews : 0));
+    total = Math.max(0, Number(total) || 0);
     var bugs    = (byLabel.BUG_REPORT || 0) + (byLabel.COMPLAINT || 0);
     var health  = ba.health || (bugs > 50 ? 'critical' : bugs > 10 ? 'warning' : 'positive');
     var lu = (s.meta && s.meta.last_updated) || ba.last_updated;
@@ -429,7 +432,7 @@
             queueRunning: !!ba.queue_running,
             lastRun: ba.last_run || null,
             error: ba.error || null,
-            totalReviews: ba.total_reviews || prev.totalReviews || 0,
+            totalReviews: ba.total_reviews != null ? Math.max(0, Number(ba.total_reviews) || 0) : (prev.totalReviews || 0),
             health:       ba.health || prev.health || 'positive',
             status:       ba.status || 'idle',
             progress:     ba.progress || null,

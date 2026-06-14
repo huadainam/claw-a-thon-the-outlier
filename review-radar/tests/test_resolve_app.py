@@ -27,6 +27,21 @@ def test_matched_returns_single_app_with_both_ids():
     assert res["app"]["gp_id"] == "com.zing.zalo"
     assert res["app"]["as_id"] == "579523206"
 
+def test_merge_candidates_backfills_icon_from_duplicate_title():
+    def gp(name):
+        return [{"title": "Facebook", "developer": "Meta", "icon": "",
+                 "app_id": "com.facebook.katana", "store": "google_play"}]
+
+    def asr(name):
+        return [{"title": "Facebook", "developer": "Meta Platforms, Inc.",
+                 "icon": "https://example.com/facebook.png",
+                 "app_id": "284882215", "store": "app_store"}]
+
+    res = resolve_app("facebook", gp_search=gp, as_search=asr)
+
+    assert res["status"] == "matched"
+    assert res["app"]["icon"] == "https://example.com/facebook.png"
+
 def test_ambiguous_returns_suggestions():
     res = resolve_app("zlp", gp_search=gp_search, as_search=as_search)
     assert res["status"] == "ambiguous"

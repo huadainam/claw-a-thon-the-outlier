@@ -102,6 +102,53 @@ def test_apps_lite_does_not_load_review_blobs(tmp_path):
     assert body["apps"][0]["icon"] == "https://example.com/zalo.png"
     assert body["apps"][0]["total_reviews"] == 0
 
+def test_apps_lite_includes_meta_total_without_loading_review_blobs(tmp_path):
+    client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)
+    client.post("/api/track", json={"title": "Zalo", "gp_id": "com.zing.zalo"})
+    store = factory("com.zing.zalo")
+    store.save_meta({
+        "status": "idle",
+        "progress": {"done": 0, "total": 0},
+        "last_updated": "2026-06-14T00:00:00+00:00",
+        "last_run": {
+            "crawled_reviews": 100,
+            "new_reviews": 25,
+            "classified_reviews": 25,
+            "total_reviews": 25,
+            "used_fallback": False,
+        },
+    })
+
+    def fail_load_reviews():
+        raise AssertionError("lite app list should read totals from meta")
+
+    store.load_reviews = fail_load_reviews
+
+    body = client.get("/api/apps?lite=1").get_json()
+
+    assert body["apps"][0]["total_reviews"] == 25
+    assert body["apps"][0]["last_updated"] == "2026-06-14T00:00:00+00:00"
+    assert body["apps"][0]["last_run"]["crawled_reviews"] == 100
+
+def test_apps_lite_uses_config_icon_when_registry_icon_is_missing(tmp_path):
+    client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)
+    client.post("/api/track", json={"title": "Facebook", "as_id": "284882215"})
+    store = factory("284882215")
+    cfg = dict(store.load_config())
+    cfg["icon"] = "https://example.com/facebook.png"
+    cfg["hourly_refresh_enabled"] = True
+    store.save_config(cfg)
+
+    def fail_load_reviews():
+        raise AssertionError("lite app list should not load reviews for icon backfill")
+
+    store.load_reviews = fail_load_reviews
+
+    body = client.get("/api/apps?lite=1").get_json()
+
+    assert body["apps"][0]["icon"] == "https://example.com/facebook.png"
+    assert body["apps"][0]["hourly_refresh_enabled"] is True
+
 def test_patch_app_toggles_hourly_refresh_and_persists_config(tmp_path):
     client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)
     client.post("/api/track", json={"title": "Zalo", "gp_id": "com.zing.zalo"})

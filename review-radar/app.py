@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
 from datetime import datetime, timezone, timedelta
 from flask import Flask, jsonify, request
+from storage import merge_app_metadata
 
 DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), "dashboard")
 ANALYZING_STALE_AFTER = timedelta(minutes=10)
@@ -88,13 +89,38 @@ def _gallery_review_total(store, meta, cutoff_day):
     # can keep the exact source-window count for tests/dev.
     if store.__class__.__name__ == "LocalStore":
         return len(_source_window_reviews(store.load_reviews(), cutoff_day))
+    total = _meta_review_total(meta)
+    if total is not None:
+        return total
+    return 0
+
+def _meta_review_total(meta):
+    """Return a stored review total from crawl metadata without loading reviews."""
     last_run = (meta or {}).get("last_run") or {}
     total = _int_or_none(last_run.get("total_reviews") if isinstance(last_run, dict) else None)
     if total is not None:
         return total
     progress = (meta or {}).get("progress") or {}
     done = _int_or_none(progress.get("done") if isinstance(progress, dict) else None)
-    return done or 0
+    return done
+
+def _gallery_app_entry(app_obj, store):
+    """Merge registry metadata with per-app config before drawing the gallery.
+
+    Some production registry rows were created before icon backfills existed,
+    while their scoped config already has the App Store / Google Play icon. The
+    gallery should use the richer scoped config without loading review blobs.
+    """
+    entry = dict(app_obj or {})
+    try:
+        cfg = store.load_config() or {}
+    except Exception:
+        cfg = {}
+    if isinstance(cfg, dict) and cfg:
+        entry = merge_app_metadata(entry, cfg)
+    if app_obj and app_obj.get("app_id"):
+        entry["app_id"] = app_obj["app_id"]
+    return entry
 
 def _clear_apps_cache():
     with _APPS_CACHE_LOCK:
@@ -423,21 +449,33 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
         lite = request.args.get("lite") in ("1", "true", "yes")
 
         if lite:
-            out = []
-            for a in app_objs:
-                entry = dict(a)
-                entry["status"] = entry.get("status") or "idle"
-                entry["progress"] = entry.get("progress") or {"done": 0, "total": 0}
-                entry["last_updated"] = entry.get("last_updated")
-                entry["last_run"] = entry.get("last_run")
-                entry["error"] = entry.get("error")
+            def build_lite_entry(a):
+                store = store_factory(a["app_id"])
+                entry = _gallery_app_entry(a, store)
+                try:
+                    meta = normalize_meta(store)
+                except Exception as exc:
+                    meta = {"error": str(exc)}
+                meta_total = _meta_review_total(meta)
+                registry_total = _int_or_none(entry.get("total_reviews"))
+                entry["status"] = meta.get("status") or entry.get("status") or "idle"
+                entry["progress"] = meta.get("progress") or entry.get("progress") or {"done": 0, "total": 0}
+                entry["last_updated"] = meta.get("last_updated") or entry.get("last_updated")
+                entry["last_run"] = meta.get("last_run") or entry.get("last_run")
+                entry["error"] = meta.get("error") or entry.get("error")
                 entry["source_cutoff_day"] = cutoff_day
-                entry["total_reviews"] = _int_or_none(entry.get("total_reviews")) or 0
-                entry["hourly_refresh_enabled"] = _hourly_refresh_enabled(a)
+                entry["total_reviews"] = meta_total if meta_total is not None else (registry_total or 0)
+                entry["hourly_refresh_enabled"] = _hourly_refresh_enabled(entry)
                 entry["queue_position"] = entry.get("queue_position")
                 entry["queue_waiting_count"] = entry.get("queue_waiting_count")
                 entry["queue_running"] = bool(entry.get("queue_running"))
-                out.append(entry)
+                return entry
+
+            if len(app_objs) > 1:
+                with ThreadPoolExecutor(max_workers=min(16, len(app_objs))) as pool:
+                    out = list(pool.map(build_lite_entry, app_objs))
+            else:
+                out = [build_lite_entry(a) for a in app_objs]
             out.sort(key=gallery_sort_key)
             return _no_cache(jsonify({"active_app_id": active_app_id, "apps": out}))
 
@@ -447,7 +485,7 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
                 meta = normalize_meta(store)
             except Exception as exc:
                 meta = {"status": "idle", "progress": {"done": 0, "total": 0}, "error": str(exc)}
-            entry = dict(a)
+            entry = _gallery_app_entry(a, store)
             entry["status"] = meta.get("status", "idle")
             entry["progress"] = meta.get("progress", {"done": 0, "total": 0})
             entry["last_updated"] = meta.get("last_updated")
@@ -455,7 +493,7 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
             entry["error"] = meta.get("error")
             entry["source_cutoff_day"] = cutoff_day
             entry["total_reviews"] = _gallery_review_total(store, meta, cutoff_day)
-            entry["hourly_refresh_enabled"] = _hourly_refresh_enabled(a)
+            entry["hourly_refresh_enabled"] = _hourly_refresh_enabled(entry)
             entry.update(_queue_details(store, queue_snapshot))
             return entry
 

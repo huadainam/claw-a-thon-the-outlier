@@ -24,6 +24,7 @@ function defaultSourceWindowLabel(lang) {
 function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, availVersion }) {
   const [query, setQuery] = useState("");
   const [availableQuery, setAvailableQuery] = useState("");
+  const [refreshFilter, setRefreshFilter] = useState("all");
   const [phase, setPhase] = useState("empty"); // empty | searching | results
   const [suggestions, setSuggestions] = useState([]);
   const [confirmed, setConfirmed] = useState(null);
@@ -108,8 +109,23 @@ function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, ava
   });
   const hasQueuedApps = scrapingApps.some(r => r.status === "queued");
   const availableApps = allAvailable.filter(r => !isBusyStatus(r.status));
+  const refreshCounts = availableApps.reduce((acc, row) => {
+    if (row.hourlyRefreshEnabled === true) acc.on += 1;
+    else acc.off += 1;
+    return acc;
+  }, { on:0, off:0 });
+  const refreshFilterOptions = [
+    { id:"all", label:t("refresh_filter_all"), count:availableApps.length },
+    { id:"on", label:t("refresh_filter_on"), count:refreshCounts.on },
+    { id:"off", label:t("refresh_filter_off"), count:refreshCounts.off },
+  ];
+  const refreshFilteredApps = refreshFilter === "all"
+    ? availableApps
+    : availableApps.filter(row => refreshFilter === "on"
+      ? row.hourlyRefreshEnabled === true
+      : row.hourlyRefreshEnabled !== true);
   const availableTerms = normalizeSearchText(availableQuery).split(/\s+/).filter(Boolean);
-  const available = availableTerms.length === 0 ? availableApps : availableApps.filter(row => {
+  const available = availableTerms.length === 0 ? refreshFilteredApps : refreshFilteredApps.filter(row => {
     const a = window.DATA.APPS[row.app] || {};
     const haystack = normalizeSearchText([
       row.app,
@@ -331,24 +347,47 @@ function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, ava
               <h2 style={{ fontSize:21, fontWeight:700, letterSpacing:"-0.025em" }}>{t("available")}</h2>
               <p style={{ fontSize:14, color:"var(--text-2)", marginTop:2 }}>{t("available_sub")}</p>
             </div>
-            <div style={{ position:"relative", flex:"0 1 360px", width:"min(100%, 360px)", display:"flex", alignItems:"center" }}>
-              <Icon name="search" size={16} style={{ position:"absolute", left:13, color:"var(--text-3)", pointerEvents:"none" }}/>
-              <input value={availableQuery}
-                onChange={e => setAvailableQuery(e.target.value)}
-                placeholder={t("available_search_placeholder")}
-                style={{ width:"100%", height:40, padding:"0 40px 0 38px", borderRadius:11,
-                  border:"1px solid var(--hairline-strong)", background:"#fff", outline:"none",
-                  boxShadow:"var(--shadow-sm)", color:"var(--text)", fontSize:14, fontWeight:500,
-                  transition:"box-shadow .15s, border-color .15s" }}
-                onFocus={e => { e.target.style.borderColor = "var(--accent)"; e.target.style.boxShadow = "0 0 0 4px var(--accent-soft)"; }}
-                onBlur={e => { e.target.style.borderColor = "var(--hairline-strong)"; e.target.style.boxShadow = "var(--shadow-sm)"; }}/>
-              {availableQuery && (
-                <button onClick={() => setAvailableQuery("")} title={t("clear_search")} aria-label={t("clear_search")}
-                  style={{ position:"absolute", right:7, width:28, height:28, borderRadius:8, display:"grid", placeItems:"center",
-                    color:"var(--text-3)", background:"rgba(0,0,0,0.04)" }}>
-                  <Icon name="x" size={14} stroke={2.1}/>
-                </button>
-              )}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:10, flex:"1 1 560px", flexWrap:"wrap" }}>
+              <div role="tablist" aria-label={t("refresh_filter_label")}
+                style={{ display:"inline-flex", alignItems:"center", gap:4, height:40, padding:4,
+                  borderRadius:12, background:"rgba(0,0,0,0.045)", flex:"0 0 auto" }}>
+                {refreshFilterOptions.map(opt => {
+                  const active = refreshFilter === opt.id;
+                  return (
+                    <button key={opt.id} type="button" role="tab" aria-selected={active}
+                      onClick={() => setRefreshFilter(opt.id)}
+                      style={{ height:32, display:"inline-flex", alignItems:"center", gap:6,
+                        padding:"0 10px", borderRadius:9, fontSize:13, fontWeight:700,
+                        color:active ? "var(--accent)" : "var(--text-2)",
+                        background:active ? "#fff" : "transparent",
+                        boxShadow:active ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+                        transition:"background .15s, color .15s, box-shadow .15s" }}>
+                      {opt.id !== "all" && <Icon name="refresh" size={13} stroke={2}/>}
+                      <span>{opt.label}</span>
+                      <span className="mono" style={{ fontSize:12, color:active ? "var(--accent)" : "var(--text-3)" }}>{opt.count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ position:"relative", flex:"1 1 260px", maxWidth:360, minWidth:220, display:"flex", alignItems:"center" }}>
+                <Icon name="search" size={16} style={{ position:"absolute", left:13, color:"var(--text-3)", pointerEvents:"none" }}/>
+                <input value={availableQuery}
+                  onChange={e => setAvailableQuery(e.target.value)}
+                  placeholder={t("available_search_placeholder")}
+                  style={{ width:"100%", height:40, padding:"0 40px 0 38px", borderRadius:11,
+                    border:"1px solid var(--hairline-strong)", background:"#fff", outline:"none",
+                    boxShadow:"var(--shadow-sm)", color:"var(--text)", fontSize:14, fontWeight:500,
+                    transition:"box-shadow .15s, border-color .15s" }}
+                  onFocus={e => { e.target.style.borderColor = "var(--accent)"; e.target.style.boxShadow = "0 0 0 4px var(--accent-soft)"; }}
+                  onBlur={e => { e.target.style.borderColor = "var(--hairline-strong)"; e.target.style.boxShadow = "var(--shadow-sm)"; }}/>
+                {availableQuery && (
+                  <button onClick={() => setAvailableQuery("")} title={t("clear_search")} aria-label={t("clear_search")}
+                    style={{ position:"absolute", right:7, width:28, height:28, borderRadius:8, display:"grid", placeItems:"center",
+                      color:"var(--text-3)", background:"rgba(0,0,0,0.04)" }}>
+                    <Icon name="x" size={14} stroke={2.1}/>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           {available.length > 0 ? (
@@ -356,7 +395,8 @@ function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, ava
               {available.map((row, i) => {
               const a = window.DATA.APPS[row.app];
               if (!a) return null;
-              const needsCrawl = (row.totalReviews || 0) === 0 && (row.lastUpdated == null || row.lastUpdated >= 999);
+              const totalReviews = Math.max(0, Number(row.totalReviews) || 0);
+              const needsCrawl = totalReviews === 0 && (row.lastUpdated == null || row.lastUpdated >= 999);
               const hourlyEnabled = row.hourlyRefreshEnabled === true;
               return (
                 <button key={row.app} className="card"
@@ -381,7 +421,7 @@ function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, ava
                   <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", borderTop:"1px solid var(--hairline)", paddingTop:12 }}>
                     <div>
                       <div className="mono" style={{ fontSize:19, fontWeight:700, letterSpacing:"-0.02em" }}>
-                        {row.totalReviews > 0 ? row.totalReviews.toLocaleString() : "—"}
+                        {totalReviews.toLocaleString()}
                       </div>
                       <div style={{ fontSize:11.5, color:"var(--text-3)", fontWeight:500 }}>{t("total_reviews")}</div>
                     </div>

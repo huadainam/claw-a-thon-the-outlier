@@ -77,11 +77,14 @@ function Icon({ name, size = 18, stroke = 1.7, className, style }) {
 
 /* ---------- App glyph (logo placeholder) ---------- */
 function AppGlyph({ app, size = 44, fontSize }) {
+  const [failedLogo, setFailedLogo] = useState(false);
   const a = window.DATA.APPS[app];
+  useEffect(() => { setFailedLogo(false); }, [app, a && a.logo]);
   if (!a) return null;
   // Real logo: set APPS[id].logo to an image path/URL to swap in the actual app icon.
-  if (a.logo) {
+  if (a.logo && !failedLogo) {
     return <img src={a.logo} alt={a.name} className="app-glyph"
+      onError={() => setFailedLogo(true)}
       style={{ width: size, height: size, objectFit: "cover", background: "#fff" }}/>;
   }
   const ratio = a.glyph.length > 1 ? 0.34 : 0.46;

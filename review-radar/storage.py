@@ -42,6 +42,8 @@ class Store(ABC):
     def load_reviews(self) -> list: ...
     @abstractmethod
     def append_reviews(self, reviews: list): ...
+    def review_count(self) -> int:
+        return len(self.load_reviews())
     @abstractmethod
     def load_todos(self) -> list: ...
     @abstractmethod
@@ -203,6 +205,15 @@ class MemoryStore(Store):
             if isinstance(chunk, list):
                 reviews.extend(chunk)
         return reviews[:total]
+
+    def review_count(self) -> int:
+        index = self._load_doc(self._reviews_index_sess(), None)
+        if isinstance(index, dict) and index.get("version") == 1:
+            try:
+                return int(index.get("count") or 0)
+            except (TypeError, ValueError):
+                return 0
+        return len(self._load_doc(_SESS_REVIEWS, []))
 
     def append_reviews(self, reviews: list):
         existing = self.load_reviews()

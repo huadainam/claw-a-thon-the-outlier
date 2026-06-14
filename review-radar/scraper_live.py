@@ -1,6 +1,6 @@
 import time
 import requests
-from google_play_scraper import search as gp_search_fn, reviews, Sort
+from google_play_scraper import app as gp_app_fn, search as gp_search_fn, reviews, Sort
 
 APP_STORE_COUNTRIES = ("vn", "us", "gb", "au", "ca", "sg", "my", "th", "id", "ph")
 
@@ -16,6 +16,23 @@ def gp_search_live(name):
     return [{"title": r["title"], "developer": r.get("developer", ""),
              "icon": r.get("icon", ""), "app_id": r["appId"],
              "store": "google_play"} for r in results if r.get("appId")]
+
+def gp_lookup_live(app_id):
+    if not app_id:
+        return {}
+    try:
+        r = gp_app_fn(app_id, lang="vi", country="vn")
+    except Exception:
+        return {}
+    if not r:
+        return {}
+    return {
+        "title": r.get("title", ""),
+        "developer": r.get("developer", ""),
+        "icon": r.get("icon", ""),
+        "gp_id": r.get("appId") or app_id,
+        "stores": ["google_play"],
+    }
 
 def gp_reviews_live(app_id, count, attempts=3):
     # Google Play throttles rapid back-to-back requests (returns errors or an empty
@@ -45,6 +62,31 @@ def as_search_live(name):
     return [{"title": it["trackName"], "developer": it.get("artistName", ""),
              "icon": it.get("artworkUrl100", ""), "app_id": str(it["trackId"]),
              "store": "app_store"} for it in items]
+
+def as_lookup_live(app_id):
+    if not app_id:
+        return {}
+    for country in ("vn", "us"):
+        try:
+            resp = requests.get(
+                "https://itunes.apple.com/lookup",
+                params={"id": app_id, "country": country, "entity": "software"},
+                timeout=20,
+            )
+            items = resp.json().get("results", [])
+        except Exception:
+            items = []
+        if not items:
+            continue
+        it = items[0]
+        return {
+            "title": it.get("trackName", ""),
+            "developer": it.get("artistName", ""),
+            "icon": it.get("artworkUrl100", ""),
+            "as_id": str(it.get("trackId") or app_id),
+            "stores": ["app_store"],
+        }
+    return {}
 
 def _as_entry_time(review):
     return review.get("date") or ""

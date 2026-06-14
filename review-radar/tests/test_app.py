@@ -130,6 +130,32 @@ def test_apps_lite_includes_meta_total_without_loading_review_blobs(tmp_path):
     assert body["apps"][0]["last_updated"] == "2026-06-14T00:00:00+00:00"
     assert body["apps"][0]["last_run"]["crawled_reviews"] == 100
 
+def test_apps_lite_uses_indexed_review_count_when_meta_is_default(tmp_path):
+    registry = LocalRegistry(data_dir=str(tmp_path))
+    registry.upsert_app({"title": "Zalo", "gp_id": "com.zing.zalo"})
+
+    class IndexedStore:
+        def load_config(self):
+            return {}
+
+        def save_config(self, cfg):
+            pass
+
+        def load_meta(self):
+            return {"status": "idle", "progress": {"done": 0, "total": 0}}
+
+        def review_count(self):
+            return 37
+
+        def load_reviews(self):
+            raise AssertionError("lite app list should read count from index")
+
+    app = create_app(registry=registry, store_factory=lambda app_id: IndexedStore())
+    app.config["TESTING"] = True
+    body = app.test_client().get("/api/apps?lite=1").get_json()
+
+    assert body["apps"][0]["total_reviews"] == 37
+
 def test_apps_lite_uses_config_icon_when_registry_icon_is_missing(tmp_path):
     client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)
     client.post("/api/track", json={"title": "Facebook", "as_id": "284882215"})

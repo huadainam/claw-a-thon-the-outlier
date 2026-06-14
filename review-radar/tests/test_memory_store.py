@@ -38,15 +38,27 @@ def test_memory_store_reviews_are_chunked():
     s.append_reviews([{"id": "a"}, {"id": "b"}, {"id": "c"}])
 
     assert s.load_reviews() == [{"id": "a"}, {"id": "b"}, {"id": "c"}]
+    assert s.review_count() == 3
     assert "rr-reviews-index" in s.http.sessions
     chunk_sessions = [name for name in s.http.sessions if name.startswith("rr-reviews-chunk-")]
     assert len(chunk_sessions) == 2
+
+def test_memory_store_review_count_reads_index_without_chunks():
+    s = make_store()
+    s.REVIEWS_CHUNK_SIZE = 2
+    s.append_reviews([{"id": "a"}, {"id": "b"}, {"id": "c"}])
+    for name in list(s.http.sessions):
+        if name.startswith("rr-reviews-chunk-"):
+            del s.http.sessions[name]
+
+    assert s.review_count() == 3
 
 def test_memory_store_reads_legacy_reviews_without_index():
     s = make_store()
     s.http.post_event("m1", "agent", "rr-reviews", '[{"id":"legacy"}]')
 
     assert s.load_reviews() == [{"id": "legacy"}]
+    assert s.review_count() == 1
 
 def test_memory_store_reset_clears():
     s = make_store()

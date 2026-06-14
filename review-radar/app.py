@@ -22,6 +22,9 @@ _APPS_CACHE_LOCK = threading.Lock()
 _APPS_FULL_CACHE = {"at": 0.0, "body": None}
 APPS_FULL_CACHE_SECONDS = 15
 SCHEDULED_REFRESH_INTERVAL = timedelta(hours=1)
+_METADATA_BACKFILL_LOCK = threading.Lock()
+_METADATA_BACKFILL_CACHE = {}
+_REGISTRY_PATCH_LOCK = threading.Lock()
 
 
 def _asset_build_stamp():
@@ -89,10 +92,9 @@ def _gallery_review_total(store, meta, cutoff_day):
     # can keep the exact source-window count for tests/dev.
     if store.__class__.__name__ == "LocalStore":
         return len(_source_window_reviews(store.load_reviews(), cutoff_day))
-    total = _meta_review_total(meta)
-    if total is not None:
-        return total
-    return 0
+    meta_total = _meta_review_total(meta)
+    stored_total = _store_review_count(store, cutoff_day, allow_local=True)
+    return _best_review_total(meta_total, stored_total=stored_total)
 
 def _meta_review_total(meta):
     """Return a stored review total from crawl metadata without loading reviews."""
@@ -103,6 +105,26 @@ def _meta_review_total(meta):
     progress = (meta or {}).get("progress") or {}
     done = _int_or_none(progress.get("done") if isinstance(progress, dict) else None)
     return done
+
+def _store_review_count(store, cutoff_day=None, allow_local=False):
+    if store.__class__.__name__ == "LocalStore":
+        if not allow_local:
+            return None
+        return len(_source_window_reviews(store.load_reviews(), cutoff_day))
+    count_fn = getattr(store, "review_count", None)
+    if callable(count_fn):
+        return _int_or_none(count_fn())
+    return None
+
+def _best_review_total(meta_total=None, registry_total=None, stored_total=None):
+    values = (meta_total, registry_total, stored_total)
+    for value in values:
+        if value is not None and value > 0:
+            return value
+    for value in values:
+        if value is not None:
+            return value
+    return 0
 
 def _gallery_app_entry(app_obj, store):
     """Merge registry metadata with per-app config before drawing the gallery.
@@ -121,6 +143,63 @@ def _gallery_app_entry(app_obj, store):
     if app_obj and app_obj.get("app_id"):
         entry["app_id"] = app_obj["app_id"]
     return entry
+
+def _live_metadata_backfill(entry):
+    """Lookup current store metadata for old registry rows missing icon/developer."""
+    if entry.get("icon") and entry.get("developer"):
+        return {}
+    key = (entry.get("as_id") or "", entry.get("gp_id") or "")
+    if not any(key):
+        return {}
+    with _METADATA_BACKFILL_LOCK:
+        if key in _METADATA_BACKFILL_CACHE:
+            return dict(_METADATA_BACKFILL_CACHE[key])
+
+    patch = {}
+    try:
+        from scraper_live import as_lookup_live, gp_lookup_live
+        candidates = []
+        if entry.get("as_id"):
+            candidates.append(as_lookup_live(entry.get("as_id")))
+        if entry.get("gp_id"):
+            candidates.append(gp_lookup_live(entry.get("gp_id")))
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            patch = merge_app_metadata(patch, candidate)
+            if patch.get("icon") and patch.get("developer"):
+                break
+    except Exception:
+        patch = {}
+
+    cleaned = {}
+    for field in ("icon", "developer", "as_id", "gp_id"):
+        if not entry.get(field) and patch.get(field):
+            cleaned[field] = patch[field]
+    stores = sorted(set((entry.get("stores") or []) + (patch.get("stores") or [])))
+    if stores and stores != (entry.get("stores") or []):
+        cleaned["stores"] = stores
+    patch = cleaned
+    with _METADATA_BACKFILL_LOCK:
+        _METADATA_BACKFILL_CACHE[key] = dict(patch)
+    return patch
+
+def _maybe_backfill_gallery_metadata(entry, registry, store):
+    if entry.get("icon") and entry.get("developer"):
+        return entry
+    patch = _live_metadata_backfill(entry)
+    if not patch:
+        return entry
+    merged = merge_app_metadata(entry, patch)
+    app_id = entry.get("app_id")
+    if app_id:
+        try:
+            with _REGISTRY_PATCH_LOCK:
+                registry.update_app(app_id, patch)
+            store.save_config(merged)
+        except Exception:
+            pass
+    return merged
 
 def _clear_apps_cache():
     with _APPS_CACHE_LOCK:
@@ -452,19 +531,22 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
             def build_lite_entry(a):
                 store = store_factory(a["app_id"])
                 entry = _gallery_app_entry(a, store)
+                if not app.config.get("TESTING"):
+                    entry = _maybe_backfill_gallery_metadata(entry, registry, store)
                 try:
                     meta = normalize_meta(store)
                 except Exception as exc:
                     meta = {"error": str(exc)}
                 meta_total = _meta_review_total(meta)
                 registry_total = _int_or_none(entry.get("total_reviews"))
+                stored_total = _store_review_count(store, cutoff_day)
                 entry["status"] = meta.get("status") or entry.get("status") or "idle"
                 entry["progress"] = meta.get("progress") or entry.get("progress") or {"done": 0, "total": 0}
                 entry["last_updated"] = meta.get("last_updated") or entry.get("last_updated")
                 entry["last_run"] = meta.get("last_run") or entry.get("last_run")
                 entry["error"] = meta.get("error") or entry.get("error")
                 entry["source_cutoff_day"] = cutoff_day
-                entry["total_reviews"] = meta_total if meta_total is not None else (registry_total or 0)
+                entry["total_reviews"] = _best_review_total(meta_total, registry_total, stored_total)
                 entry["hourly_refresh_enabled"] = _hourly_refresh_enabled(entry)
                 entry["queue_position"] = entry.get("queue_position")
                 entry["queue_waiting_count"] = entry.get("queue_waiting_count")
@@ -486,6 +568,8 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
             except Exception as exc:
                 meta = {"status": "idle", "progress": {"done": 0, "total": 0}, "error": str(exc)}
             entry = _gallery_app_entry(a, store)
+            if not app.config.get("TESTING"):
+                entry = _maybe_backfill_gallery_metadata(entry, registry, store)
             entry["status"] = meta.get("status", "idle")
             entry["progress"] = meta.get("progress", {"done": 0, "total": 0})
             entry["last_updated"] = meta.get("last_updated")

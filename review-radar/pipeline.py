@@ -22,6 +22,21 @@ def _regroup(store, canonicalize_fn):
     store.save_todos(todos)
     return todos
 
+def _run_summary(requested_reviews=0, crawled_reviews=0, new_reviews=0,
+                 classified_reviews=0, total_reviews=0, used_fallback=False,
+                 error=None):
+    summary = {
+        "requested_reviews": requested_reviews or 0,
+        "crawled_reviews": crawled_reviews,
+        "new_reviews": new_reviews,
+        "classified_reviews": classified_reviews,
+        "total_reviews": total_reviews,
+        "used_fallback": bool(used_fallback),
+    }
+    if error:
+        summary["error"] = str(error)
+    return summary
+
 def run_pipeline(store=None, scrape_gp=None, scrape_as=None, classify=None,
                  canonicalize_fn=None, batch_size=BATCH_SIZE):
     # default wiring (production)
@@ -45,45 +60,63 @@ def run_pipeline(store=None, scrape_gp=None, scrape_as=None, classify=None,
 
     if not _run_lock.acquire(blocking=False):
         return {"skipped": True, "reason": "already running"}
+    requested_reviews = 0
+    crawled_count = 0
+    new_count = 0
+    classified_count = 0
+    used_fallback = False
     try:
         cfg = store.load_config()
         if not cfg:
             return {"error": "no app configured"}
+        requested_reviews = int(cfg.get("review_limit") or 0)
 
         scraped = scrape_gp(cfg.get("gp_id")) + scrape_as(cfg.get("as_id"))
+        crawled_count = len(scraped)
         used_fallback = not scraped  # regroup from cached reviews only
 
         processed = store.load_processed_ids()
         new_reviews = [r for r in scraped if r["id"] not in processed]
-        total = len(new_reviews)
+        new_count = len(new_reviews)
 
-        meta = {"status": "analyzing", "progress": {"done": 0, "total": total},
-                "last_updated": _now()}
+        meta = {"status": "analyzing", "progress": {"done": 0, "total": new_count},
+                "last_updated": _now(),
+                "last_run": _run_summary(requested_reviews, crawled_count, new_count,
+                                         0, len(store.load_reviews()), used_fallback)}
         store.save_meta(meta)
 
-        if total == 0 and not used_fallback:
+        if new_count == 0 and not used_fallback:
             todos = store.load_todos()
             store.save_meta({"status": "idle", "progress": {"done": 0, "total": 0},
-                             "last_updated": _now()})
+                             "last_updated": _now(),
+                             "last_run": _run_summary(requested_reviews, crawled_count, 0,
+                                                      0, len(store.load_reviews()), False)})
             return {"new_reviews": 0, "todos": len(todos), "used_fallback": False}
 
         # Classify in batches so the review count + progress bar advance live.
-        for i in range(0, total, batch_size):
+        for i in range(0, new_count, batch_size):
             chunk = new_reviews[i:i + batch_size]
             classified = classify(chunk)
             store.append_reviews(classified)
+            classified_count += len(classified)
             processed |= {r["id"] for r in classified}
             store.save_processed_ids(processed)
-            meta["progress"]["done"] = min(i + batch_size, total)
+            meta["progress"]["done"] = classified_count
             meta["last_updated"] = _now()
+            meta["last_run"] = _run_summary(requested_reviews, crawled_count, new_count,
+                                            classified_count, len(store.load_reviews()),
+                                            used_fallback)
             store.save_meta(meta)
 
         # Canonicalize + group once at the end (correct clustering, one LLM call).
         todos = _regroup(store, canonicalize_fn)
-        store.save_meta({"status": "idle", "progress": {"done": total, "total": total},
-                         "last_updated": _now()})
+        store.save_meta({"status": "idle", "progress": {"done": classified_count, "total": new_count},
+                         "last_updated": _now(),
+                         "last_run": _run_summary(requested_reviews, crawled_count, new_count,
+                                                  classified_count, len(store.load_reviews()),
+                                                  used_fallback)})
 
-        return {"new_reviews": total, "todos": len(todos), "used_fallback": used_fallback}
+        return {"new_reviews": new_count, "todos": len(todos), "used_fallback": used_fallback}
     except Exception as exc:
         # A failed LLM/API call used to leave meta.status="analyzing", which made
         # the UI polling screen look stuck forever. Keep any partial reviews that
@@ -94,6 +127,9 @@ def run_pipeline(store=None, scrape_gp=None, scrape_as=None, classify=None,
                 "status": "idle",
                 "progress": current.get("progress", {"done": 0, "total": 0}),
                 "last_updated": _now(),
+                "last_run": _run_summary(requested_reviews, crawled_count, new_count,
+                                         classified_count, len(store.load_reviews()),
+                                         used_fallback, error=exc),
                 "error": str(exc),
             })
         except Exception:

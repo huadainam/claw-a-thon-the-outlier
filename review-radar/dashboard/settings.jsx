@@ -27,7 +27,7 @@ function SettingsPage({ t, lang, setLang }) {
       {/* General */}
       <SettingsCard t={t} title={t("set_general")} icon="sliders" delay=".05s">
         <FieldRow label={t("set_workspace_name")}>
-          <input className="set-input" defaultValue="The Outliers · App Review" style={{ width:280 }}/>
+          <input className="set-input" defaultValue="The Outlier · App Review" style={{ width:280 }}/>
         </FieldRow>
         <FieldRow label={t("set_default_lang")} border>
           <div className="lang-switch" style={{ background:"rgba(0,0,0,0.05)" }}>

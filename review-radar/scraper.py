@@ -119,5 +119,6 @@ def scrape_app_store(app_id, count=1000, fetch=None):
             "score": r.get("rating", 0),
             "at": str(r.get("date", "")),
             "source": "app_store",
+            "country": r.get("country", ""),
         })
     return out

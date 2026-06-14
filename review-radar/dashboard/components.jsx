@@ -1,6 +1,32 @@
 /* ============ Shared components ============ */
 const { useState, useEffect, useRef, useMemo } = React;
 
+function parseTimestamp(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function sameLocalDay(a, b) {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+}
+
+function formatCrawlTimestamp(value, t) {
+  const date = parseTimestamp(value);
+  if (!date) return "—";
+  const lang = (t && t._lang) || "vi";
+  const isVi = lang === "vi";
+  const time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  if (sameLocalDay(date, new Date())) return `${isVi ? "lúc" : "at"} ${time}`;
+
+  const dateLabel = date.toLocaleDateString(isVi ? "vi-VN" : "en-US", isVi
+    ? { day:"2-digit", month:"2-digit" }
+    : { month:"short", day:"numeric" });
+  return isVi ? `lúc ${time}, ${dateLabel}` : `at ${time}, ${dateLabel}`;
+}
+
 /* ---------- Line icons (thin, consistent, Apple-like) ---------- */
 function Icon({ name, size = 18, stroke = 1.7, className, style }) {
   const p = { width: size, height: size, viewBox: "0 0 24 24", fill: "none",
@@ -127,6 +153,10 @@ function Sidebar({ screen, lang, setLang, t, go, activeApp, dashSection, onDashN
     : screen === "reports" ? "reports"
     : screen === "selection" ? selTab
     : null;
+  const goHome = () => {
+    setSelTab("monitor");
+    go("selection");
+  };
 
   const appItems = [
     { id:"overview", icon:"chart",   label:t("nav_overview") },
@@ -137,8 +167,10 @@ function Sidebar({ screen, lang, setLang, t, go, activeApp, dashSection, onDashN
   return (
     <aside className={"sidebar" + (collapsed ? " collapsed" : "")}>
       <div className="sb-brand">
-        <img className="sb-logo" src="assets/app-icon.png" alt="Review Radar"/>
-        {!collapsed && <div className="sb-brand-text">Review<br/>Radar</div>}
+        <button className="sb-brand-home" type="button" onClick={goHome} title="Review Radar" aria-label="Review Radar">
+          <img className="sb-logo" src="assets/app-icon.png" alt=""/>
+          {!collapsed && <div className="sb-brand-text">Review<br/>Radar</div>}
+        </button>
         <button className="sb-burger" onClick={onToggleNav} title={t("toggle_nav")} aria-label={t("toggle_nav")}>
           <Icon name="menu" size={18}/>
         </button>
@@ -208,8 +240,8 @@ function Sidebar({ screen, lang, setLang, t, go, activeApp, dashSection, onDashN
       )}
 
       <div className="sb-foot">
-        <button className={"sb-user" + (screen === "team" ? " active" : "")} style={{ textAlign:"left" }} title="The Outliers" onClick={() => go("team")}>
-          <img src="assets/the-outliers-logo.png" alt="The Outliers" className="sb-team-logo"/>
+        <button className={"sb-user" + (screen === "team" ? " active" : "")} style={{ textAlign:"left" }} title="The Outlier" onClick={() => go("team")}>
+          <img src="assets/TheOutlier-icon.png" alt="The Outlier" className="sb-team-logo"/>
           <div style={{ minWidth:0 }}>
             <div className="sb-user-name">{t("user_name")}</div>
             <div className="sb-user-role">{t("user_role")}</div>

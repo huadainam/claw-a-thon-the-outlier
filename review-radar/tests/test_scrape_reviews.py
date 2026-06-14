@@ -1,3 +1,4 @@
+import scraper_live
 from scraper import scrape_google_play, scrape_app_store
 
 def fake_gp_fetch(app_id, count):
@@ -32,3 +33,38 @@ def test_scrape_returns_empty_on_error():
 def test_scrape_returns_empty_for_missing_app_id():
     assert scrape_google_play(None, fetch=fake_gp_fetch) == []
     assert scrape_app_store(None, fetch=fake_as_fetch) == []
+
+def test_app_store_fetch_uses_additional_storefronts_when_limit_exceeds_one_country(monkeypatch):
+    class FakeResp:
+        def __init__(self, entries):
+            self._entries = entries
+
+        def json(self):
+            return {"feed": {"entry": self._entries}}
+
+    def entry(country, page, idx):
+        rid = f"{country}-{page}-{idx}"
+        return {
+            "id": {"label": rid},
+            "author": {"name": {"label": "User"}},
+            "content": {"label": f"Review {rid}"},
+            "im:rating": {"label": "5"},
+            "updated": {"label": f"2026-06-{idx + 1:02d}T00:00:00Z"},
+        }
+
+    calls = []
+
+    def fake_get(url, timeout):
+        calls.append(url)
+        country = url.split("itunes.apple.com/")[1].split("/")[0]
+        page = int(url.split("page=")[1].split("/")[0])
+        per_page = 50 if country == "vn" and page <= 10 else 25 if country == "us" and page == 1 else 0
+        return FakeResp([entry(country, page, i) for i in range(per_page)])
+
+    monkeypatch.setattr(scraper_live.requests, "get", fake_get)
+
+    out = scraper_live._as_fetch_pages("app", 510, countries=("vn", "us"))
+
+    assert len(out) == 510
+    assert any(r["country"] == "US" for r in out)
+    assert any("/us/rss/customerreviews/" in url for url in calls)

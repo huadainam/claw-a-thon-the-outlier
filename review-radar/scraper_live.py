@@ -2,6 +2,8 @@ import time
 import requests
 from google_play_scraper import search as gp_search_fn, reviews, Sort
 
+APP_STORE_COUNTRIES = ("vn", "us", "gb", "au", "ca", "sg", "my", "th", "id", "ph")
+
 def gp_search_live(name):
     # google-play-scraper's search() can raise (e.g. TypeError) on no-result or
     # gibberish queries, and sometimes returns the top/featured hit with appId=None.
@@ -44,42 +46,50 @@ def as_search_live(name):
              "icon": it.get("artworkUrl100", ""), "app_id": str(it["trackId"]),
              "store": "app_store"} for it in items]
 
-def _as_fetch_pages(app_id, count):
-    # Apple's customer-reviews RSS caps at 10 pages × 50 reviews. Crucially, the
-    # feed is sparse and non-contiguous: page 1 is frequently empty while later
-    # pages (2, 3, 7, …) carry the reviews, with empty pages interleaved. So we
-    # must NOT stop at the first empty page — we walk all 10 pages, skip the empty
-    # / non-JSON ones, and dedup by review id (pages can repeat under throttling).
+def _as_entry_time(review):
+    return review.get("date") or ""
+
+def _as_fetch_pages(app_id, count, countries=None):
+    # Apple's customer-reviews RSS caps each storefront at 10 pages × 50 reviews.
+    # For large backfills, walk additional storefronts and dedup globally so a
+    # user-selected 1,000 review crawl is not artificially limited to Vietnam's
+    # RSS window. The first country stays VN to preserve the local signal.
+    countries = countries or APP_STORE_COUNTRIES
     out = []
     seen = set()
-    for page in range(1, 11):
-        url = (f"https://itunes.apple.com/vn/rss/customerreviews/"
-               f"page={page}/id={app_id}/sortby=mostrecent/json")
-        try:
-            resp = requests.get(url, timeout=20)
-            entries = resp.json().get("feed", {}).get("entry", [])
-        except (ValueError, requests.RequestException):
-            # Empty body / non-JSON (Apple returns these for some pages even when
-            # other pages have data) — skip this page, keep going.
-            continue
-        if isinstance(entries, dict):  # iTunes returns a dict when there's one entry
-            entries = [entries]
-        for e in entries:
-            if "im:rating" not in e:
+    for country in countries:
+        for page in range(1, 11):
+            url = (f"https://itunes.apple.com/{country}/rss/customerreviews/"
+                   f"page={page}/id={app_id}/sortby=mostrecent/json")
+            try:
+                resp = requests.get(url, timeout=20)
+                entries = resp.json().get("feed", {}).get("entry", [])
+            except (ValueError, requests.RequestException):
+                # Empty body / non-JSON (Apple returns these for some pages even
+                # when other pages have data) — skip this page, keep going.
                 continue
-            rid = e["id"]["label"]
-            if rid in seen:
-                continue
-            seen.add(rid)
-            out.append({
-                "review_id": rid,
-                "user_name": e.get("author", {}).get("name", {}).get("label", ""),
-                "review": e.get("content", {}).get("label", ""),
-                "rating": int(e["im:rating"]["label"]),
-                "date": e.get("updated", {}).get("label", ""),
-            })
+            if isinstance(entries, dict):  # iTunes returns a dict when there's one entry
+                entries = [entries]
+            for e in entries:
+                if "im:rating" not in e:
+                    continue
+                rid = e["id"]["label"]
+                if rid in seen:
+                    continue
+                seen.add(rid)
+                out.append({
+                    "review_id": rid,
+                    "user_name": e.get("author", {}).get("name", {}).get("label", ""),
+                    "review": e.get("content", {}).get("label", ""),
+                    "rating": int(e["im:rating"]["label"]),
+                    "date": e.get("updated", {}).get("label", ""),
+                    "country": country.upper(),
+                })
+            if len(out) >= count:
+                break
         if len(out) >= count:
             break
+    out.sort(key=_as_entry_time, reverse=True)
     return out[:count]
 
 def as_reviews_live(app_id, count, attempts=3):

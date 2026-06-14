@@ -225,6 +225,8 @@ const FREQS = [
 
 function DashTopBar({ t, app, a, onBack, freq, onConfigure, range, setRange, onFutureNote, filters, setFilters }) {
   const freqLabel = t((FREQS.find(f => f.id === freq) || FREQS[1]).key);
+  const appRow = window.DATA.AVAILABLE.find(row => row.app === app);
+  const lastCrawled = formatCrawlTimestamp(appRow && appRow.lastUpdatedAt, t);
   const set = (key, val) => setFilters({ ...filters, [key]: val });
   const catOpts = window.DATA.CATEGORIES.map(c => ({ value:c.id, label:t("cat_"+c.id) }));
   const priOpts = ["critical","high","medium","low"].map(p => ({ value:p, label:t("pri_"+p) }));
@@ -250,7 +252,7 @@ function DashTopBar({ t, app, a, onBack, freq, onConfigure, range, setRange, onF
             <div style={{ display:"flex", alignItems:"center", gap:10, fontSize:12.5, color:"var(--text-2)", marginTop:2 }}>
               <span style={{ display:"inline-flex", alignItems:"center", gap:4 }}>
                 <span style={{ width:6, height:6, borderRadius:"50%", background:"var(--positive)", boxShadow:"0 0 0 3px var(--positive-soft)" }}></span>
-                {t("last_crawled")} 38{t("min_ago")}</span>
+                {t("last_crawled")} {lastCrawled}</span>
               <span style={{ width:3, height:3, borderRadius:"50%", background:"var(--text-3)" }}></span>
               <span style={{ display:"inline-flex", alignItems:"center", gap:4 }}><Icon name="refresh" size={13}/>{t("crawl_freq")}: {freqLabel}</span>
             </div>

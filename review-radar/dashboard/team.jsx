@@ -2,17 +2,14 @@
 function TeamPage({ t }) {
   const memberByEmail = Object.fromEntries((window.DATA.TEAM || []).map(m => [m.email, m]));
   const members = [
-    { key:"pic", role:"role_pic", name:"pic_name", desc:"pic_desc", contrib:"contrib_pic",
-      person:memberByEmail["namhd@vng.com.vn"], lead:true },
-    { key:"collab", role:"role_collab", name:"collab_name", desc:"collab_desc", contrib:"contrib_collab",
-      person:memberByEmail["thulcm@vng.com.vn"] },
+    { key:"pic", role:"role_pic", name:"pic_name", person:memberByEmail["namhd@vng.com.vn"], lead:true },
   ];
 
   return (
     <div style={{ maxWidth:920, margin:"0 auto", padding:"32px 40px 70px" }}>
       {/* Hero */}
       <div className="fade-up" style={{ display:"flex", alignItems:"center", gap:18, marginBottom:28 }}>
-        <img src="assets/the-outliers-logo.png" alt="The Outliers" style={{ width:64, height:64, borderRadius:16, boxShadow:"var(--shadow-md)" }}/>
+        <img src="assets/TheOutlier-icon.png" alt="The Outlier" style={{ width:64, height:64, borderRadius:16, boxShadow:"var(--shadow-md)" }}/>
         <div>
           <h1 style={{ fontSize:30, fontWeight:700, letterSpacing:"-0.03em" }}>{t("team_title")}</h1>
           <p style={{ fontSize:15, color:"var(--text-2)", marginTop:3 }}>{t("team_sub")}</p>
@@ -40,14 +37,6 @@ function TeamPage({ t }) {
               {m.person && m.person.email && (
                 <div style={{ fontSize:12.5, color:"var(--text-3)", marginTop:2 }}>{m.person.email}</div>
               )}
-              <p style={{ fontSize:14, color:"var(--text-2)", marginTop:6, lineHeight:1.5, textWrap:"pretty" }}>{t(m.desc)}</p>
-              <div style={{ display:"flex", alignItems:"flex-start", gap:7, marginTop:12, paddingTop:12, borderTop:"1px solid var(--hairline)" }}>
-                <Icon name="sparkle" size={15} style={{ color:"var(--accent)", marginTop:1, flexShrink:0 }}/>
-                <div>
-                  <div style={{ fontSize:11.5, fontWeight:700, color:"var(--text-3)", textTransform:"uppercase", letterSpacing:"0.03em" }}>{t("contributions")}</div>
-                  <div style={{ fontSize:13.5, color:"var(--text)", marginTop:2 }}>{t(m.contrib)}</div>
-                </div>
-              </div>
             </div>
           </div>
         ))}

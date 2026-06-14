@@ -53,6 +53,12 @@
     };
   }
 
+  function minutesSince(value) {
+    var time = value ? new Date(value).getTime() : NaN;
+    if (!Number.isFinite(time)) return 999;
+    return Math.max(0, Math.round((Date.now() - time) / 60000));
+  }
+
   function makeAvailableEntry(ba, stats) {
     var s = stats || {};
     var byLabel = (s.by_label) || {};
@@ -60,10 +66,15 @@
     var bugs    = (byLabel.BUG_REPORT || 0) + (byLabel.COMPLAINT || 0);
     var health  = ba.health || (bugs > 50 ? 'critical' : bugs > 10 ? 'warning' : 'positive');
     var lu = (s.meta && s.meta.last_updated) || ba.last_updated;
-    var minAgo = lu ? Math.round((Date.now() - new Date(lu).getTime()) / 60000) : 999;
     return {
       app:          ba.app_id,
-      lastUpdated:  minAgo,
+      lastUpdated:  minutesSince(lu),
+      lastUpdatedAt: lu || null,
+      queuePosition: ba.queue_position != null ? ba.queue_position : (s.meta && s.meta.queue_position),
+      queueWaitingCount: ba.queue_waiting_count != null ? ba.queue_waiting_count : (s.meta && s.meta.queue_waiting_count),
+      queueRunning: !!(ba.queue_running || (s.meta && s.meta.queue_running)),
+      lastRun: ba.last_run || (s.meta && s.meta.last_run) || null,
+      error: ba.error || (s.meta && s.meta.error) || null,
       totalReviews: total,
       health:       health,
       status:       ba.status || (s.meta && s.meta.status) || 'idle',
@@ -285,7 +296,7 @@
         action_vi:  '—',
         version:    r.version || '—',
         device:     r.source === 'app_store' ? 'iPhone' : 'Android',
-        country:    'VN',
+        country:    r.country || 'VN',
         platform:   r.source === 'app_store' ? 'App Store' : 'Google Play',
       };
     });
@@ -339,12 +350,16 @@
         window.DATA.AVAILABLE = apps.map(function(ba) {
           if (!window.DATA.APPS[ba.app_id]) window.DATA.APPS[ba.app_id] = makeAppSpec(ba);
           var prev = prevById[ba.app_id] || {};
-          var lu = ba.last_updated;
-          var minAgo = lu ? Math.round((Date.now() - new Date(lu).getTime()) / 60000)
-                          : (prev.lastUpdated != null ? prev.lastUpdated : 999);
+          var lu = ba.last_updated || prev.lastUpdatedAt || null;
           return {
             app:          ba.app_id,
-            lastUpdated:  minAgo,
+            lastUpdated:  lu ? minutesSince(lu) : (prev.lastUpdated != null ? prev.lastUpdated : 999),
+            lastUpdatedAt: lu,
+            queuePosition: ba.queue_position,
+            queueWaitingCount: ba.queue_waiting_count,
+            queueRunning: !!ba.queue_running,
+            lastRun: ba.last_run || null,
+            error: ba.error || null,
             totalReviews: ba.total_reviews || prev.totalReviews || 0,
             health:       ba.health || prev.health || 'positive',
             status:       ba.status || 'idle',

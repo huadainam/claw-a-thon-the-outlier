@@ -4,6 +4,7 @@ function Crawling({ t, app, onDone, onBack }) {
   const [active, setActive] = useState(0);
   const [progress, setProgress] = useState(0);
   const [counts, setCounts] = useState({ done: 0, total: 0 });  // reviews classified / total
+  const [queueInfo, setQueueInfo] = useState(null);
   const [notified, setNotified] = useState(false);
   const a = window.DATA.APPS[app] || { name: app };
 
@@ -20,13 +21,15 @@ function Crawling({ t, app, onDone, onBack }) {
         const total = (meta.progress && meta.progress.total) || 0;
 
         if (meta.status === "queued") {
+          setQueueInfo({ position: meta.queue_position, waitingCount: meta.queue_waiting_count });
           setActive(1);
-          setProgress(100);
+          setProgress(0);
         } else if (meta.status === "analyzing") {
           // Scraping is done by the time the backend reports "analyzing";
           // done/total is the live classification progress.
           seenAnalyzing = true;
           idleBeforeStart = 0;
+          setQueueInfo(null);
           setCounts({ done, total });
           if (total > 0 && done >= total) {
             setActive(3); setProgress(100);              // all classified → building dashboard
@@ -35,6 +38,7 @@ function Crawling({ t, app, onDone, onBack }) {
             setProgress(total > 0 ? Math.round(done / total * 100) : 0);
           }
         } else if (meta.status === "idle") {
+          setQueueInfo(null);
           if (!seenAnalyzing && done === 0 && total === 0 && idleBeforeStart < 3) {
             idleBeforeStart += 1;
             setActive(1);
@@ -48,6 +52,7 @@ function Crawling({ t, app, onDone, onBack }) {
           if (!cancelled) onDone();
           return;
         } else if (!seenAnalyzing) {
+          setQueueInfo(null);
           setActive(1); setProgress(100);                // still collecting reviews
         }
 
@@ -129,6 +134,17 @@ function Crawling({ t, app, onDone, onBack }) {
             );
           })}
         </div>
+
+        {queueInfo && (
+          <div className="card fade-in" style={{ padding:"13px 16px", marginBottom:18, display:"flex", alignItems:"center", gap:10,
+            borderColor:"var(--warning-soft)", background:"var(--warning-soft)", color:"var(--warning)" }}>
+            <Icon name="clock" size={17} stroke={2.1}/>
+            <div style={{ fontSize:13.5, fontWeight:600 }}>
+              {queueInfo.position ? `${t("status_queued")} #${queueInfo.position}` : t("queue_starting")}
+              <span style={{ fontWeight:500 }}> · {t("queue_next")}</span>
+            </div>
+          </div>
+        )}
 
         <p style={{ fontSize:13.5, color:"var(--text-3)", textAlign:"center", lineHeight:1.5, maxWidth:480, margin:"6px auto 26px" }}>{t("s2_note")}</p>
 

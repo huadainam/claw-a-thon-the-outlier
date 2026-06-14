@@ -1,5 +1,5 @@
 from storage import LocalStore, LocalRegistry
-from app import create_app
+from app import create_app, _enqueue_scheduled_crawls, _queue_positions
 from datetime import datetime, timezone, timedelta
 
 def make_client(tmp_path, **overrides):
@@ -68,8 +68,22 @@ def test_apps_includes_review_totals(tmp_path):
     client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)
     client.post("/api/track", json={"title": "Zalo", "gp_id": "com.zing.zalo"})
     factory("com.zing.zalo").append_reviews([{"id": "1"}, {"id": "2"}])
+    factory("com.zing.zalo").save_meta({
+        "status": "idle",
+        "progress": {"done": 2, "total": 2},
+        "last_updated": "2026-06-14T00:00:00+00:00",
+        "last_run": {
+            "crawled_reviews": 5,
+            "new_reviews": 2,
+            "classified_reviews": 2,
+            "total_reviews": 2,
+            "used_fallback": False,
+        },
+    })
     body = client.get("/api/apps").get_json()
     assert body["apps"][0]["total_reviews"] == 2
+    assert body["apps"][0]["last_run"]["crawled_reviews"] == 5
+    assert body["apps"][0]["last_run"]["classified_reviews"] == 2
 
 def test_apps_sorted_zalopay_first_then_alphabetical(tmp_path):
     client, registry, _ = make_client(tmp_path, run_fn=lambda s: None)
@@ -106,6 +120,29 @@ def test_run_now_starts_active_app(tmp_path):
     assert resp.status_code == 200
     assert resp.get_json()["ok"] is True
     assert calls == ["Zalo"]
+
+def test_scheduled_crawl_enqueues_all_tracked_apps_not_only_active(tmp_path):
+    client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)
+    client.post("/api/track", json={"title": "Zalo", "gp_id": "com.zing.zalo"})
+    client.post("/api/track", json={"title": "ZaloPay", "as_id": "1112407590"})
+    registry.set_active(None)
+    calls = []
+
+    count = _enqueue_scheduled_crawls(
+        registry,
+        factory,
+        lambda store: calls.append(store.load_config().get("title")),
+    )
+
+    assert count == 2
+    assert calls == ["Zalo", "ZaloPay"]
+
+def test_queue_positions_are_one_indexed_by_waiting_order():
+    assert _queue_positions(["app-a", "app-b", "app-c"]) == {
+        "app-a": 1,
+        "app-b": 2,
+        "app-c": 3,
+    }
 
 def test_patch_todo_status(tmp_path):
     client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)

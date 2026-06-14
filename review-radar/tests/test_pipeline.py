@@ -12,7 +12,7 @@ def make_deps(gp_reviews, as_reviews):
 
 def test_pipeline_sets_meta_status_and_progress(tmp_path):
     store = LocalStore(data_dir=str(tmp_path))
-    store.save_config({"title": "Zalo", "gp_id": "g", "as_id": "a"})
+    store.save_config({"title": "Zalo", "gp_id": "g", "as_id": "a", "review_limit": 1000})
     gp = [{"id": f"g{i}", "content": "lỗi", "score": 1, "source": "google_play",
            "at": "2026-06-01"} for i in range(5)]
     run_pipeline(store=store, batch_size=2, **make_deps(gp, []))
@@ -21,6 +21,14 @@ def test_pipeline_sets_meta_status_and_progress(tmp_path):
     assert m["progress"]["total"] == 5
     assert m["progress"]["done"] == 5
     assert m["last_updated"]
+    assert m["last_run"] == {
+        "requested_reviews": 1000,
+        "crawled_reviews": 5,
+        "new_reviews": 5,
+        "classified_reviews": 5,
+        "total_reviews": 5,
+        "used_fallback": False,
+    }
 
 def test_pipeline_processes_new_reviews(tmp_path):
     store = LocalStore(data_dir=str(tmp_path))
@@ -58,7 +66,11 @@ def test_pipeline_skips_regroup_when_refresh_has_no_new_reviews(tmp_path):
     result = run_pipeline(store=store, **deps)
     assert result == {"new_reviews": 0, "todos": 1, "used_fallback": False}
     assert calls["canonicalize"] == 0
-    assert store.load_meta()["status"] == "idle"
+    meta = store.load_meta()
+    assert meta["status"] == "idle"
+    assert meta["last_run"]["crawled_reviews"] == 1
+    assert meta["last_run"]["classified_reviews"] == 0
+    assert meta["last_run"]["new_reviews"] == 0
 
 def test_pipeline_falls_back_to_cache_when_scrape_empty(tmp_path):
     store = LocalStore(data_dir=str(tmp_path))

@@ -5,7 +5,7 @@ import unicodedata
 import threading
 from collections import Counter
 from datetime import datetime, timezone, timedelta
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request
 
 DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), "dashboard")
 ANALYZING_STALE_AFTER = timedelta(minutes=10)
@@ -13,6 +13,7 @@ _RUN_QUEUE = queue.Queue()
 _QUEUE_LOCK = threading.Lock()
 _QUEUED_KEYS = set()
 _QUEUE_WORKER_STARTED = False
+_RUNNING_KEY = None
 
 
 def _asset_build_stamp():
@@ -53,10 +54,13 @@ def _mark_queued(store):
         pass
 
 def _queue_worker():
+    global _RUNNING_KEY
     from pipeline import run_pipeline
     import time
     while True:
         key, store = _RUN_QUEUE.get()
+        with _QUEUE_LOCK:
+            _RUNNING_KEY = key
         try:
             while True:
                 result = run_pipeline(store=store)
@@ -77,6 +81,8 @@ def _queue_worker():
         finally:
             with _QUEUE_LOCK:
                 _QUEUED_KEYS.discard(key)
+                if _RUNNING_KEY == key:
+                    _RUNNING_KEY = None
             _RUN_QUEUE.task_done()
 
 def _ensure_queue_worker():
@@ -98,6 +104,39 @@ def _default_run_fn(store):
         _QUEUED_KEYS.add(key)
     _mark_queued(store)
     _RUN_QUEUE.put((key, store))
+
+def _queue_positions(waiting_keys):
+    return {key: idx + 1 for idx, key in enumerate(waiting_keys)}
+
+def _queue_snapshot():
+    with _RUN_QUEUE.mutex:
+        waiting_keys = [item[0] for item in list(_RUN_QUEUE.queue)]
+    with _QUEUE_LOCK:
+        running_key = _RUNNING_KEY
+    return {
+        "positions": _queue_positions(waiting_keys),
+        "waiting_count": len(waiting_keys),
+        "running_key": running_key,
+    }
+
+def _queue_details(store, snapshot=None):
+    snapshot = snapshot or _queue_snapshot()
+    key = _store_queue_key(store)
+    return {
+        "queue_position": snapshot["positions"].get(key),
+        "queue_waiting_count": snapshot["waiting_count"],
+        "queue_running": snapshot["running_key"] == key,
+    }
+
+def _enqueue_scheduled_crawls(registry, store_factory, run_fn):
+    app_ids = [
+        app.get("app_id")
+        for app in registry.list_apps()
+        if app.get("app_id")
+    ]
+    for app_id in app_ids:
+        run_fn(store_factory(app_id))
+    return len(app_ids)
 
 def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
     if registry is None:
@@ -210,6 +249,7 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
         # Include each app's crawl status and review total so the gallery can
         # show useful counts before a user opens an individual dashboard.
         out = []
+        queue_snapshot = _queue_snapshot()
         for a in registry.list_apps():
             store = store_factory(a["app_id"])
             meta = normalize_meta(store)
@@ -217,7 +257,10 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
             entry["status"] = meta.get("status", "idle")
             entry["progress"] = meta.get("progress", {"done": 0, "total": 0})
             entry["last_updated"] = meta.get("last_updated")
+            entry["last_run"] = meta.get("last_run")
+            entry["error"] = meta.get("error")
             entry["total_reviews"] = len(store.load_reviews())
+            entry.update(_queue_details(store, queue_snapshot))
             out.append(entry)
         out.sort(key=gallery_sort_key)
         return _no_cache(jsonify({"active_app_id": registry.get_active(), "apps": out}))
@@ -250,7 +293,8 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None):
                             "meta": {"status": "idle", "progress": {"done": 0, "total": 0},
                                      "last_updated": None}}))
         reviews = store.load_reviews()
-        meta = normalize_meta(store)
+        meta = dict(normalize_meta(store))
+        meta.update(_queue_details(store))
         by_label = dict(Counter(r.get("label") for r in reviews))
         by_day = dict(Counter(
             (r.get("at") or "")[:10] for r in reviews if r.get("label") == "BUG_REPORT"
@@ -292,12 +336,10 @@ def _start_scheduler():
     import time
     from storage import get_store, get_registry
 
-    def run_active():
-        aid = get_registry().get_active()
-        if aid:
-            _default_run_fn(get_store(aid))
+    def run_tracked_apps():
+        _enqueue_scheduled_crawls(get_registry(), get_store, _default_run_fn)
 
-    schedule.every(1).hours.do(run_active)
+    schedule.every(1).hours.do(run_tracked_apps)
     while True:
         schedule.run_pending()
         time.sleep(60)

@@ -118,6 +118,7 @@ input { font-family: inherit; }
 /* Collapsed icon-rail mode */
 .sidebar.collapsed { width: 74px; padding-left: 13px; padding-right: 13px; }
 .sidebar.collapsed .sb-brand { flex-direction: column; gap: 14px; align-items: center; padding: 6px 0 18px; }
+.sidebar.collapsed .sb-brand-home { justify-content: center; margin: -4px 0; }
 .sidebar.collapsed .sb-burger { margin-left: 0; }
 .sidebar.collapsed .sb-item { justify-content: center; padding: 10px 0; gap: 0; }
 .sidebar.collapsed .sb-item > span,
@@ -131,6 +132,14 @@ input { font-family: inherit; }
 .sidebar.collapsed .sb-app-context > .sb-dot { display: none; }
 .sidebar.collapsed .sb-user { justify-content: center; }
 .sb-brand { display: flex; align-items: center; gap: 11px; padding: 6px 8px 22px; }
+.sb-brand-home {
+  display: flex; align-items: center; gap: 11px; min-width: 0;
+  margin: -4px; padding: 4px; border-radius: 12px; text-align: left;
+  transition: background 0.15s, transform 0.15s;
+}
+.sb-brand-home:hover { background: rgba(0,0,0,0.04); }
+.sb-brand-home:active { transform: translateY(1px); }
+.sb-brand-home:focus-visible { outline: 3px solid var(--accent-soft-2); outline-offset: 2px; }
 .sb-logo {
   width: 34px; height: 34px; border-radius: 9px;
   object-fit: cover; display: block; flex-shrink: 0;

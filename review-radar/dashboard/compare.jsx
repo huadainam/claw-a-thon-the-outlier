@@ -9,6 +9,7 @@ function ComparePage({ t }) {
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(false), 2400); };
 
   const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  const clearSelection = () => setSelected([]);
   const runCompare = () => {
     if (selected.length < 2 || loading) return;
     setLoading(true);
@@ -40,7 +41,7 @@ function ComparePage({ t }) {
       </div>
 
       {phase === "select"
-        ? <CompareSelect t={t} apps={apps} selected={selected} toggle={toggle} onCompare={runCompare} loading={loading}/>
+        ? <CompareSelect t={t} apps={apps} selected={selected} toggle={toggle} onClear={clearSelection} onCompare={runCompare} loading={loading}/>
         : <CompareResult t={t} selected={selected} compareData={compareData}/>}
 
       {toast && <div className="toast"><Icon name="clock" size={16} stroke={2.2} style={{ color:"var(--warning)" }}/>{toast}</div>}
@@ -48,12 +49,20 @@ function ComparePage({ t }) {
   );
 }
 
-function CompareSelect({ t, apps, selected, toggle, onCompare, loading }) {
+function CompareSelect({ t, apps, selected, toggle, onClear, onCompare, loading }) {
   return (
     <div className="fade-up">
-      <div style={{ marginBottom:16 }}>
-        <h2 style={{ fontSize:18, fontWeight:700, letterSpacing:"-0.02em" }}>{t("compare_select_title")}</h2>
-        <p style={{ fontSize:14, color:"var(--text-2)", marginTop:2 }}>{t("compare_select_sub")}</p>
+      <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", gap:14, flexWrap:"wrap", marginBottom:16 }}>
+        <div>
+          <h2 style={{ fontSize:18, fontWeight:700, letterSpacing:"-0.02em" }}>{t("compare_select_title")}</h2>
+          <p style={{ fontSize:14, color:"var(--text-2)", marginTop:2 }}>{t("compare_select_sub")}</p>
+        </div>
+        {selected.length > 0 && (
+          <button className="btn btn-secondary btn-sm" onClick={onClear} disabled={loading}>
+            <Icon name="x" size={15} stroke={2.2}/>
+            {t("compare_clear_selection")}
+          </button>
+        )}
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(250px, 1fr))", gap:14, marginBottom:24 }}>
         {apps.map((id, i) => {

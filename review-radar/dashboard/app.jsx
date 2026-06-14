@@ -1,4 +1,32 @@
 /* ============ Main App — routing + language + real backend integration ============ */
+function formatToastCount(value) {
+  return Math.max(0, Number(value) || 0).toLocaleString();
+}
+
+function buildCrawlToastSub(dict, appRow) {
+  const run = appRow.last_run || {};
+  const error = run.error || appRow.error;
+  if (error) return `${dict.toast_crawl_error}: ${error}`;
+
+  if (run.used_fallback) return dict.toast_crawl_fallback;
+
+  const crawled = Number(run.crawled_reviews || 0);
+  const classified = Number(run.classified_reviews || 0);
+  const newReviews = Number(run.new_reviews || 0);
+  const fallbackClassified = (appRow.progress && appRow.progress.total) || 0;
+
+  if (crawled > 0 && (classified > 0 || newReviews > 0)) {
+    return `${dict.toast_crawled} ${formatToastCount(crawled)} ${dict.reviews_word} · ${dict.toast_classified} ${formatToastCount(classified || fallbackClassified)} ${dict.toast_new_reviews}`;
+  }
+  if (crawled > 0) {
+    return `${dict.toast_crawled} ${formatToastCount(crawled)} ${dict.reviews_word} · ${dict.toast_no_new_reviews}`;
+  }
+  if (fallbackClassified > 0) {
+    return `${dict.toast_classified} ${formatToastCount(fallbackClassified)} ${dict.toast_new_reviews}`;
+  }
+  return dict.toast_no_reviews_fetched || dict.toast_scrape_done;
+}
+
 function App() {
   const [lang, setLang] = useState(() => localStorage.getItem("arm_lang") || "vi");
   const [screen, setScreen] = useState("initializing");
@@ -33,18 +61,20 @@ function App() {
           if (primed && isBusyStatus(was) && a.status === "idle") {
             const dict = window.DATA.I18N[langRef.current];
             const spec = window.DATA.APPS[a.app_id] || {};
-            const n = (a.progress && a.progress.total) || 0;
-            const sub = n > 0
-              ? (dict.toast_scrape_done + " · +" + n + " " + dict.reviews_word)
-              : dict.toast_scrape_done;
+            const sub = buildCrawlToastSub(dict, a);
             const id = ++toastIdRef.current;
             setToasts(ts => [...ts, { id, app: a.app_id, title: spec.name || a.title || a.app_id, sub }].slice(-4));
           }
           prevStatus[a.app_id] = a.status;
         });
         primed = true;
-        // Bump only when statuses (or in-progress counts) actually changed.
-        const sig = apps.map(a => a.app_id + ":" + a.status + ":" + ((a.progress && a.progress.done) || 0)).join("|");
+        // Bump only when statuses, queue positions, or in-progress counts changed.
+        const sig = apps.map(a => [
+          a.app_id,
+          a.status,
+          a.queue_position || "",
+          (a.progress && a.progress.done) || 0,
+        ].join(":")).join("|");
         if (sig !== lastSig) { lastSig = sig; setAvailVersion(v => v + 1); }
         const anyAnalyzing = apps.some(a => isBusyStatus(a.status));
         timer = setTimeout(poll, anyAnalyzing ? 2500 : 6000);

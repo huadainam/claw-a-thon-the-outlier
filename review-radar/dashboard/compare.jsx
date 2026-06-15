@@ -87,26 +87,37 @@ function CompareSelect({ t, apps, selected, toggle, onClear, onCompare, loading 
         })}
       </div>
 
-      <div style={{ position:"sticky", bottom:0, display:"flex", alignItems:"center", justifyContent:"space-between",
+      <div style={{ position:"sticky", bottom:0, display:"flex", flexDirection:"column", gap:10,
         background:"rgba(251,251,253,0.86)", backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)",
         borderTop:"1px solid var(--hairline)", padding:"16px 4px", marginTop:8 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ display:"flex" }}>
-            {selected.slice(0,5).map((id, i) => (
-              <div key={id} style={{ marginLeft: i ? -10 : 0, border:"2px solid var(--bg)", borderRadius:"24%", lineHeight:0 }}>
-                <AppGlyph app={id} size={30}/>
-              </div>
-            ))}
+        {loading && (
+          <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:7 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:7, color:"var(--accent)", fontSize:12.5, fontWeight:650 }}>
+              <span className="spinner" style={{ width:13, height:13, borderColor:"rgba(0,113,227,0.22)", borderTopColor:"var(--accent)" }}></span>
+              {t("compare_loading_status")}
+            </div>
+            <div className="compare-loading-track"><div className="compare-loading-bar"></div></div>
           </div>
-          <span style={{ fontSize:14, fontWeight:600, color:"var(--text-2)" }}>
-            <span className="mono" style={{ color:"var(--text)" }}>{selected.length}</span> {t("selected_count")}
-          </span>
+        )}
+        <div style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ display:"flex" }}>
+              {selected.slice(0,5).map((id, i) => (
+                <div key={id} style={{ marginLeft: i ? -10 : 0, border:"2px solid var(--bg)", borderRadius:"24%", lineHeight:0 }}>
+                  <AppGlyph app={id} size={30}/>
+                </div>
+              ))}
+            </div>
+            <span style={{ fontSize:14, fontWeight:600, color:"var(--text-2)" }}>
+              <span className="mono" style={{ color:"var(--text)" }}>{selected.length}</span> {t("selected_count")}
+            </span>
+          </div>
+          <button className="btn btn-primary" disabled={selected.length < 2 || loading} onClick={onCompare}>
+            <Icon name="chart" size={16}/>
+            {loading ? t("compare_loading") : t("compare_cta")}
+            {!loading && (selected.length >= 2 ? ` (${selected.length})` : ` · ${t("compare_min")}`)}
+          </button>
         </div>
-        <button className="btn btn-primary" disabled={selected.length < 2 || loading} onClick={onCompare}>
-          <Icon name="chart" size={16}/>
-          {loading ? (t._lang === "vi" ? "Đang so sánh..." : "Comparing...") : t("compare_cta")}
-          {!loading && (selected.length >= 2 ? ` (${selected.length})` : ` · ${t("compare_min")}`)}
-        </button>
       </div>
     </div>
   );
@@ -129,6 +140,71 @@ function compareGet(url) {
   });
 }
 
+function normalizeCompareText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function compareRowName(row) {
+  if (!row) return "";
+  const spec = window.DATA.APPS[row.app] || {};
+  return spec.name || row.title || row.name || row.app || "";
+}
+
+function compareAppName(id) {
+  const spec = window.DATA.APPS[id] || {};
+  const row = (window.DATA.AVAILABLE || []).find(r => r.app === id);
+  return spec.name || compareRowName(row) || id;
+}
+
+function resolveCompareAppId(id) {
+  const rows = window.DATA.AVAILABLE || [];
+  if (rows.some(row => row.app === id)) return id;
+
+  const wanted = normalizeCompareText(compareAppName(id));
+  const exact = rows.find(row => normalizeCompareText(compareRowName(row)) === wanted);
+  if (exact) return exact.app;
+
+  if (wanted.indexOf("zalopay") >= 0 && wanted.indexOf("merchant") < 0) {
+    const consumer = rows
+      .filter(row => {
+        const text = normalizeCompareText(`${row.app} ${compareRowName(row)}`);
+        return text.indexOf("zalopay") >= 0
+          && text.indexOf("merchant") < 0
+          && text.indexOf("mep") < 0;
+      })
+      .sort((a, b) => (b.totalReviews || 0) - (a.totalReviews || 0))[0];
+    if (consumer) return consumer.app;
+  }
+
+  return id;
+}
+
+function findCompareFallbackAppId(id, currentId) {
+  const rows = (window.DATA.AVAILABLE || []).filter(row => row.app !== currentId);
+  const wanted = normalizeCompareText(compareAppName(id));
+  const exact = rows.find(row => normalizeCompareText(compareRowName(row)) === wanted);
+  if (exact) return exact.app;
+
+  if (wanted.indexOf("zalopay") >= 0 && wanted.indexOf("merchant") < 0) {
+    const consumer = rows
+      .filter(row => {
+        const text = normalizeCompareText(`${row.app} ${compareRowName(row)}`);
+        return text.indexOf("zalopay") >= 0
+          && text.indexOf("merchant") < 0
+          && text.indexOf("mep") < 0;
+      })
+      .sort((a, b) => (b.totalReviews || 0) - (a.totalReviews || 0))[0];
+    if (consumer) return consumer.app;
+  }
+
+  return null;
+}
+
 function loadCompareStats(ids) {
   return Promise.all(ids.map(id => loadOneCompareStats(id))).then(rows => {
     const out = {};
@@ -137,16 +213,62 @@ function loadCompareStats(ids) {
   });
 }
 
-function loadOneCompareStats(id) {
-  const q = encodeURIComponent(id);
+function compareSettled(promise, label, appId) {
+  return promise
+    .then(value => ({ ok:true, value }))
+    .catch(error => {
+      console.warn(`[Compare] ${label} unavailable for ${appId}:`, error);
+      return { ok:false, value:null };
+    });
+}
+
+function loadComparePayload(appId) {
+  const q = encodeURIComponent(appId);
   return Promise.all([
-    compareGet(`/api/stats?app_id=${q}`),
-    compareGet(`/api/reviews?app_id=${q}`),
-    compareGet(`/api/todos?app_id=${q}`),
-  ]).then(([stats, reviews, todos]) => ({
+    compareSettled(compareGet(`/api/stats?app_id=${q}`), "stats", appId),
+    compareSettled(compareGet(`/api/reviews?app_id=${q}`), "reviews", appId),
+    compareSettled(compareGet(`/api/todos?app_id=${q}`), "todos", appId),
+  ]).then(([statsRes, reviewsRes, todosRes]) => ({
+    stats: statsRes.value || {},
+    reviews: Array.isArray(reviewsRes.value) ? reviewsRes.value : [],
+    todos: Array.isArray(todosRes.value) ? todosRes.value : [],
+    ok: statsRes.ok || reviewsRes.ok || todosRes.ok,
+  }));
+}
+
+function compareLabelTotal(byLabel) {
+  return Object.values(byLabel || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+}
+
+function comparePayloadIsEmpty(payload) {
+  const stats = payload.stats || {};
+  return !payload.reviews.length && !(Number(stats.total) > 0) && compareLabelTotal(stats.by_label) === 0;
+}
+
+function makeCompareRow(id, apiId, payload) {
+  return {
     id,
-    stats: makeRealCompareStats(id, stats || {}, reviews || [], todos || []),
-  })).catch(err => {
+    stats: makeRealCompareStats(apiId, payload.stats, payload.reviews, payload.todos),
+  };
+}
+
+function loadOneCompareStats(id) {
+  const canonicalId = resolveCompareAppId(id);
+  return loadComparePayload(canonicalId).then(payload => {
+    if (!payload.ok || comparePayloadIsEmpty(payload)) {
+      const fallbackId = findCompareFallbackAppId(id, canonicalId);
+      if (fallbackId) {
+        return loadComparePayload(fallbackId).then(fallbackPayload => {
+          if (!fallbackPayload.ok || comparePayloadIsEmpty(fallbackPayload)) {
+            throw new Error(`No comparison data for ${canonicalId} or ${fallbackId}`);
+          }
+          return makeCompareRow(id, fallbackId, fallbackPayload);
+        });
+      }
+      throw new Error(`No comparison data for ${canonicalId}`);
+    }
+    return makeCompareRow(id, canonicalId, payload);
+  }).catch(err => {
     console.warn(`[Compare] stats unavailable for ${id}:`, err);
     return { id, stats: unavailableCompareStats(id) };
   });
@@ -296,27 +418,27 @@ function makeRealCompareStats(id, stats, reviews, todos) {
   const byLabel = Object.keys(stats.by_label || {}).length ? stats.by_label : labelCounts(reviews);
   const scores = numericScores(reviews);
   const latestDay = latestCompareDay(reviews);
-  const rating = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-  const health = healthFromLabels(byLabel, total);
+  const rating = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+  const health = total ? healthFromLabels(byLabel, total) : null;
   // "Bug nghiêm trọng" = genuinely severe bug reviews (a 1-2★ bug report), not
   // clusters that happen to be reported 10+ times. Counting by mention-based todo
   // severity made apps with many distinct 1★ bugs (e.g. Zalopay) show 0, which is
   // wrong — this counts the actual critical bug reviews instead.
-  const criticalBugs = reviews.filter(
-    r => r.label === "BUG_REPORT" && (Number(r.score) || 3) <= 2
-  ).length;
+  const criticalBugs = reviews.length
+    ? reviews.filter(r => r.label === "BUG_REPORT" && (Number(r.score) || 3) <= 2).length
+    : ((byLabel.BUG_REPORT || 0) || null);
 
   return {
     health,
     rating,
     totalReviews: total,
-    latestReviews: latestDay ? reviews.filter(r => compareReviewDay(r) === latestDay).length : 0,
+    latestReviews: latestDay ? reviews.filter(r => compareReviewDay(r) === latestDay).length : null,
     critical: criticalBugs,
     sentiment: sentimentFromLabels(byLabel, total),
     trend: trendFromReviews(reviews),
     cats: categoryPercents(byLabel, total),
     stars: starPercents(scores),
-    spark: sparkFromReviews(reviews, health),
+    spark: health == null ? [] : sparkFromReviews(reviews, health),
   };
 }
 

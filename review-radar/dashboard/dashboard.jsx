@@ -527,6 +527,33 @@ function DateRangeDropdown({ t, value, onChange, onCustom }) {
 }
 
 /* ---------- KPI card ---------- */
+function HealthFormulaTooltip({ t }) {
+  const scoreLabel = t._lang === "vi" ? "Điểm" : "Score";
+  return (
+    <span className="health-formula">
+      <span className="hf-title">{t("kpi_health_formula_title")}</span>
+      <span className="hf-equation" aria-hidden="true">
+        <span className="hf-score">{scoreLabel}</span>
+        <span>=</span>
+        <span>clamp</span>
+        <span>(</span>
+        <span>70 + 50 ×</span>
+        <span className="hf-frac">
+          <span className="hf-num">P - 0.5 × (C + B)</span>
+          <span className="hf-den">N</span>
+        </span>
+        <span>, 0-100)</span>
+      </span>
+      <span className="hf-legend">
+        <span><b>P</b> = {t("kpi_health_p")}</span>
+        <span><b>C</b> = {t("kpi_health_c")}</span>
+        <span><b>B</b> = {t("kpi_health_b")}</span>
+        <span><b>N</b> = {t("kpi_health_n")}</span>
+      </span>
+    </span>
+  );
+}
+
 function KpiCard({ k, t, i }) {
   const toneColor = { neutral:"var(--accent)", critical:"var(--critical)", positive:"var(--positive)", warning:"var(--warning)" }[k.tone];
   const toneSoft = { neutral:"var(--accent-soft)", critical:"var(--critical-soft)", positive:"var(--positive-soft)", warning:"var(--warning-soft)" }[k.tone];
@@ -548,7 +575,7 @@ function KpiCard({ k, t, i }) {
               <button type="button" className="kpi-info" aria-label={healthFormula} title={healthFormula}>
                 <Icon name="info" size={12.5} stroke={2}/>
               </button>
-              <span className="kpi-tip" role="tooltip">{healthFormula}</span>
+              <span className="kpi-tip kpi-formula-tip" role="tooltip"><HealthFormulaTooltip t={t}/></span>
             </span>
           )}
         </div>

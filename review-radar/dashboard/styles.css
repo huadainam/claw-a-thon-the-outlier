@@ -272,6 +272,76 @@ input { font-family: inherit; }
   transform: rotate(45deg);
 }
 
+.kpi-formula-tip {
+  width: 292px;
+  padding: 11px 12px;
+}
+
+.health-formula {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.hf-title {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: rgba(255,255,255,0.72);
+}
+
+.hf-equation {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #fff;
+}
+
+.hf-score {
+  color: #9fd0ff;
+}
+
+.hf-frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 104px;
+  transform: translateY(1px);
+}
+
+.hf-num,
+.hf-den {
+  display: block;
+  white-space: nowrap;
+}
+
+.hf-num {
+  padding: 0 4px 3px;
+  border-bottom: 1px solid rgba(255,255,255,0.72);
+}
+
+.hf-den {
+  padding-top: 3px;
+}
+
+.hf-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  color: rgba(255,255,255,0.74);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.hf-legend b {
+  color: #fff;
+  font-weight: 750;
+}
+
 .kpi-info-wrap:hover .kpi-tip,
 .kpi-info-wrap:focus-within .kpi-tip {
   opacity: 1;
@@ -311,6 +381,10 @@ input { font-family: inherit; }
 @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
 @keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes dashIn { from { stroke-dashoffset: var(--circ); } }
+@keyframes compareLoading {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
 
 .fade-up { animation: fadeUp 0.5s cubic-bezier(0.22,0.61,0.36,1) both; }
 .fade-in { animation: fadeIn 0.4s ease both; }
@@ -406,6 +480,24 @@ input { font-family: inherit; }
   color: #fff; transition: all 0.15s;
 }
 .check-box[data-on="true"] { background: var(--accent); border-color: var(--accent); }
+
+.compare-loading-track {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0,113,227,0.14);
+}
+
+.compare-loading-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 34%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(0,113,227,0), var(--accent), rgba(0,113,227,0));
+  animation: compareLoading 1.05s cubic-bezier(0.4,0,0.2,1) infinite;
+}
 
 /* Feedback labels */
 .fb-label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-2); margin-bottom: 7px; }

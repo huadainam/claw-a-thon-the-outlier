@@ -39,6 +39,9 @@ def _run_summary(requested_reviews=0, crawled_reviews=0, new_reviews=0,
         summary["error"] = str(error)
     return summary
 
+def _has_bug_reviews(reviews):
+    return any(r.get("label") == "BUG_REPORT" for r in (reviews or []))
+
 def run_pipeline(store=None, scrape_gp=None, scrape_as=None, classify=None,
                  review_limit=None,
                  canonicalize_fn=None, batch_size=BATCH_SIZE, should_cancel=None):
@@ -94,6 +97,14 @@ def run_pipeline(store=None, scrape_gp=None, scrape_as=None, classify=None,
 
         if new_count == 0 and not used_fallback:
             todos = store.load_todos()
+            # A previous crawl may have classified and stored reviews but failed
+            # while saving the grouped todos (for example when the todo payload
+            # was too large for Memory). Rebuild once from cached bug reviews so
+            # a later refresh does not leave the dashboard permanently blank.
+            if not todos:
+                cached_reviews = store.load_reviews()
+                if _has_bug_reviews(cached_reviews):
+                    todos = _regroup(store, canonicalize_fn)
             store.save_meta({"status": "idle", "progress": {"done": 0, "total": 0},
                              "last_updated": _now(),
                              "last_run": _run_summary(requested_reviews, crawled_count, 0,

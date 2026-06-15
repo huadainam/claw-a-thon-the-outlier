@@ -100,6 +100,20 @@ def test_pipeline_skips_regroup_when_refresh_has_no_new_reviews(tmp_path):
     assert meta["last_run"]["classified_reviews"] == 0
     assert meta["last_run"]["new_reviews"] == 0
 
+def test_pipeline_rebuilds_missing_todos_when_refresh_has_no_new_reviews(tmp_path):
+    store = LocalStore(data_dir=str(tmp_path))
+    store.save_config({"title": "Zalo", "gp_id": "g", "as_id": "a"})
+    store.append_reviews([{"id": "g1", "content": "lỗi", "label": "BUG_REPORT",
+                           "bug_topic": "Lỗi A", "source": "google_play", "at": "d"}])
+    store.save_processed_ids({"g1"})
+    gp = [{"id": "g1", "content": "lỗi", "score": 1, "source": "google_play", "at": "d"}]
+
+    result = run_pipeline(store=store, **make_deps(gp, []))
+
+    assert result == {"new_reviews": 0, "todos": 1, "used_fallback": False}
+    assert len(store.load_todos()) == 1
+    assert store.load_todos()[0]["topic"] == "Lỗi A"
+
 def test_pipeline_falls_back_to_cache_when_scrape_empty(tmp_path):
     store = LocalStore(data_dir=str(tmp_path))
     store.save_config({"title": "Zalo", "gp_id": "g", "as_id": "a"})

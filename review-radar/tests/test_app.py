@@ -212,15 +212,21 @@ def test_patch_app_toggles_hourly_refresh_and_persists_config(tmp_path):
     assert factory("com.zing.zalo").load_config()["hourly_refresh_enabled"] is False
     assert client.get("/api/apps").get_json()["apps"][0]["hourly_refresh_enabled"] is False
 
-def test_apps_sorted_zalopay_first_then_alphabetical(tmp_path):
+def test_apps_sorted_zalopay_consumer_then_merchant_then_alphabetical(tmp_path):
     client, registry, _ = make_client(tmp_path, run_fn=lambda s: None)
     client.post("/api/track", json={"title": "Zing MP3", "gp_id": "vng.zing.mp3"})
     client.post("/api/track", json={"title": "Crossfire: Legends", "as_id": "6748588650"})
+    client.post("/api/track", json={
+        "title": "ZaloPay Merchant",
+        "gp_id": "vn.com.vng.zalopay.mep.merchant",
+        "hourly_refresh_enabled": True,
+    })
     client.post("/api/track", json={"title": "Zalopay-Thanh toán & Tài chính", "as_id": "1112407590"})
     client.post("/api/track", json={"title": "Ballistic Hero VNG", "as_id": "6754264117"})
     titles = [a["title"] for a in client.get("/api/apps").get_json()["apps"]]
     assert titles == [
         "Zalopay-Thanh toán & Tài chính",
+        "ZaloPay Merchant",
         "Ballistic Hero VNG",
         "Crossfire: Legends",
         "Zing MP3",
@@ -353,6 +359,20 @@ def test_patch_todo_status(tmp_path):
     resp = client.patch("/api/todos/t1", json={"status": "done"})
     assert resp.status_code == 200
     assert factory("com.zing.zalo").load_todos()[0]["status"] == "done"
+
+def test_todos_rebuilds_from_cached_bug_reviews_when_missing(tmp_path):
+    client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)
+    client.post("/api/track", json={"title": "Zalo", "gp_id": "com.zing.zalo"})
+    factory("com.zing.zalo").append_reviews([
+        {"id": "r1", "content": "login lỗi", "label": "BUG_REPORT",
+         "bug_topic": "Lỗi đăng nhập", "source": "google_play", "at": "2026-06-01"},
+    ])
+
+    body = client.get("/api/todos?app_id=com.zing.zalo").get_json()
+
+    assert len(body) == 1
+    assert body[0]["topic"] == "Lỗi đăng nhập"
+    assert factory("com.zing.zalo").load_todos()[0]["topic"] == "Lỗi đăng nhập"
 
 def test_patch_todo_supports_editable_workflow_statuses(tmp_path):
     client, registry, factory = make_client(tmp_path, run_fn=lambda s: None)

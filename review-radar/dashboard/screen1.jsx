@@ -7,8 +7,6 @@ function normalizeSearchText(value) {
     .trim();
 }
 
-const REVIEW_LIMIT_STORAGE_KEY = "arm_review_limit_v2";
-
 function formatHeroDate(date, lang) {
   return date.toLocaleDateString(lang === "vi" ? "vi-VN" : "en-US", {
     day:"2-digit", month:"2-digit", year:"numeric",
@@ -28,13 +26,8 @@ function AppSelection({ t, lang, onConfirm, onOpenDashboard, onOpenCrawling, ava
   const [phase, setPhase] = useState("empty"); // empty | searching | results
   const [suggestions, setSuggestions] = useState([]);
   const [confirmed, setConfirmed] = useState(null);
-  const [reviewLimit, setReviewLimit] = useState(() => {
-    const v = parseInt(localStorage.getItem(REVIEW_LIMIT_STORAGE_KEY), 10);
-    return [50, 100, 200, 500, 1000].includes(v) ? v : 100;
-  });
+  const [reviewLimit, setReviewLimit] = useState(100);
   const inputRef = useRef(null);
-
-  useEffect(() => { localStorage.setItem(REVIEW_LIMIT_STORAGE_KEY, String(reviewLimit)); }, [reviewLimit]);
 
   useEffect(() => { inputRef.current && inputRef.current.focus(); }, []);
 

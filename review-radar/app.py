@@ -83,6 +83,36 @@ def _source_window_reviews(reviews, cutoff_day=None):
     cutoff = cutoff_day or _source_cutoff_day_key()
     return [r for r in (reviews or []) if _review_is_in_source_window(r, cutoff)]
 
+def _rebuild_missing_todos(store):
+    """Fast self-heal for apps whose reviews were saved but todo save failed.
+
+    The normal pipeline uses LLM canonicalization for nicer topic clustering.
+    This request-time repair intentionally groups by the already-classified
+    bug_topic only, so dashboards never show a blank action list when BUG_REPORT
+    reviews exist.
+    """
+    try:
+        reviews = store.load_reviews()
+    except Exception:
+        return []
+    if not any(r.get("label") == "BUG_REPORT" for r in (reviews or [])):
+        return []
+    try:
+        existing = store.load_todos()
+    except Exception:
+        existing = []
+    try:
+        from grouper import group_bugs, merge_with_existing_todos
+        todos = merge_with_existing_todos(group_bugs(reviews), existing)
+    except Exception:
+        return existing or []
+    if todos:
+        try:
+            store.save_todos(todos)
+        except Exception:
+            pass
+    return todos
+
 def _int_or_none(value):
     try:
         return int(value)
@@ -479,13 +509,27 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None,
         return store_factory(aid) if aid else None
 
     def gallery_sort_key(app_obj):
-        # Gallery order: Zalopay first → apps with refresh ON → alphabetical.
+        # Gallery order: Zalopay consumer → ZaloPay Merchant → refresh ON → alphabetical.
         title = (app_obj.get("title") or app_obj.get("app_id") or "").lower()
         app_id = str(app_obj.get("app_id") or "").lower()
-        is_zalopay = app_id == "1112407590" or "zalopay" in app_id or "zalopay" in title
+        as_id = str(app_obj.get("as_id") or "").lower()
+        gp_id = str(app_obj.get("gp_id") or "").lower()
+        merchant_id = "vn.com.vng.zalopay.mep.merchant"
+        is_merchant = (
+            app_id == merchant_id
+            or gp_id == merchant_id
+            or as_id == "1444720973"
+            or ("zalopay" in title and "merchant" in title)
+        )
+        is_zalopay_consumer = (
+            app_id == "1112407590"
+            or as_id == "1112407590"
+            or ("zalopay" in title and not is_merchant)
+        )
+        zalopay_rank = 0 if is_zalopay_consumer else (1 if is_merchant else 2)
         refresh_on = _hourly_refresh_enabled(app_obj)
         ascii_title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode("ascii")
-        return (0 if is_zalopay else 1, 0 if refresh_on else 1, ascii_title)
+        return (zalopay_rank, 0 if refresh_on else 1, ascii_title)
 
     def normalize_meta(store):
         meta = store.load_meta()
@@ -612,21 +656,31 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None,
                         return _no_cache(jsonify(cached))
 
             def build_lite_entry(a):
-                store = store_factory(a["app_id"])
-                entry = _gallery_app_entry(a, store)
+                # Per-app reads hit the Memory API and can fail (e.g. 429 when many
+                # apps load at once). A failure for ONE app must never 500 the whole
+                # gallery — fall back to the registry row's known values so the app
+                # still renders (status/total fill in on a later poll).
                 # NOTE: live metadata backfill (_maybe_backfill_gallery_metadata)
-                # is deliberately skipped here. It does network scraping (App Store
-                # / Google Play lookups) for apps missing an icon/developer, which
-                # is far too slow for the first-paint gallery. The full /api/apps
-                # poll that follows backfills those fields shortly after, so the
-                # initial load stays fast and the icons fill in moments later.
+                # is also deliberately skipped here — it does slow network scraping;
+                # the full /api/apps poll backfills icons shortly after.
                 try:
-                    meta = normalize_meta(store)
+                    store = store_factory(a["app_id"])
+                except Exception:
+                    store = None
+                try:
+                    entry = _gallery_app_entry(a, store) if store is not None else dict(a)
+                except Exception:
+                    entry = dict(a)
+                try:
+                    meta = normalize_meta(store) if store is not None else {}
                 except Exception as exc:
                     meta = {"error": str(exc)}
+                try:
+                    stored_total = _store_review_count(store, cutoff_day) if store is not None else None
+                except Exception:
+                    stored_total = None
                 meta_total = _meta_review_total(meta)
                 registry_total = _int_or_none(entry.get("total_reviews"))
-                stored_total = _store_review_count(store, cutoff_day)
                 entry["status"] = meta.get("status") or entry.get("status") or "idle"
                 entry["progress"] = meta.get("progress") or entry.get("progress") or {"done": 0, "total": 0}
                 entry["last_updated"] = meta.get("last_updated") or entry.get("last_updated")
@@ -641,7 +695,7 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None,
                 return entry
 
             if len(app_objs) > 1:
-                with ThreadPoolExecutor(max_workers=min(16, len(app_objs))) as pool:
+                with ThreadPoolExecutor(max_workers=min(6, len(app_objs))) as pool:
                     out = list(pool.map(build_lite_entry, app_objs))
             else:
                 out = [build_lite_entry(a) for a in app_objs]
@@ -654,27 +708,45 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None,
             return _no_cache(jsonify(body))
 
         def build_entry(a):
-            store = store_factory(a["app_id"])
+            # Defensive like build_lite_entry: a per-app Memory read failure (429,
+            # cold 5xx) must degrade to the registry row, never 500 the gallery.
             try:
-                meta = normalize_meta(store)
+                store = store_factory(a["app_id"])
+            except Exception:
+                store = None
+            try:
+                meta = normalize_meta(store) if store is not None else {}
             except Exception as exc:
                 meta = {"status": "idle", "progress": {"done": 0, "total": 0}, "error": str(exc)}
-            entry = _gallery_app_entry(a, store)
-            if not app.config.get("TESTING"):
-                entry = _maybe_backfill_gallery_metadata(entry, registry, store)
+            try:
+                entry = _gallery_app_entry(a, store) if store is not None else dict(a)
+            except Exception:
+                entry = dict(a)
+            if store is not None and not app.config.get("TESTING"):
+                try:
+                    entry = _maybe_backfill_gallery_metadata(entry, registry, store)
+                except Exception:
+                    pass
+            try:
+                total_reviews = _gallery_review_total(store, meta, cutoff_day) if store is not None else None
+            except Exception:
+                total_reviews = None
+            if total_reviews is None:
+                total_reviews = _best_review_total(_meta_review_total(meta),
+                                                   _int_or_none(entry.get("total_reviews")))
             entry["status"] = meta.get("status", "idle")
             entry["progress"] = meta.get("progress", {"done": 0, "total": 0})
             entry["last_updated"] = meta.get("last_updated")
             entry["last_run"] = meta.get("last_run")
             entry["error"] = meta.get("error")
             entry["source_cutoff_day"] = cutoff_day
-            entry["total_reviews"] = _gallery_review_total(store, meta, cutoff_day)
+            entry["total_reviews"] = total_reviews
             entry["hourly_refresh_enabled"] = _hourly_refresh_enabled(entry)
-            entry.update(_queue_details(store, queue_snapshot))
+            entry.update(_queue_details(store, queue_snapshot) if store is not None else {})
             return entry
 
         if len(app_objs) > 1:
-            with ThreadPoolExecutor(max_workers=min(16, len(app_objs))) as pool:
+            with ThreadPoolExecutor(max_workers=min(6, len(app_objs))) as pool:
                 out = list(pool.map(build_entry, app_objs))
         else:
             out = [build_entry(a) for a in app_objs]
@@ -758,7 +830,12 @@ def create_app(registry=None, store_factory=None, resolve_fn=None, run_fn=None,
     @app.get("/api/todos")
     def get_todos():
         store = request_store()
-        return _no_cache(jsonify(store.load_todos() if store else []))
+        if store is None:
+            return _no_cache(jsonify([]))
+        todos = store.load_todos()
+        if not todos:
+            todos = _rebuild_missing_todos(store)
+        return _no_cache(jsonify(todos))
 
     @app.patch("/api/todos/<todo_id>")
     def patch_todo(todo_id):

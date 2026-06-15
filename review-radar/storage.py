@@ -129,6 +129,7 @@ _SESS_META = "rr-meta"
 
 class MemoryStore(Store):
     REVIEWS_CHUNK_SIZE = 50
+    TODOS_CHUNK_SIZE = 25
 
     def __init__(self, memory_id: str, actor_id: str = "review-radar", http=None, app_id: str = None):
         self.memory_id = memory_id
@@ -171,6 +172,12 @@ class MemoryStore(Store):
 
     def _reviews_chunk_sess(self, generation, idx):
         return f"{_SESS_REVIEWS}-chunk-{generation}-{idx}"
+
+    def _todos_index_sess(self):
+        return f"{_SESS_TODOS}-index"
+
+    def _todos_chunk_sess(self, generation, idx):
+        return f"{_SESS_TODOS}-chunk-{generation}-{idx}"
 
     def _save_reviews(self, reviews: list):
         reviews = list(reviews or [])
@@ -221,10 +228,38 @@ class MemoryStore(Store):
         self._save_reviews(existing)
 
     def load_todos(self) -> list:
-        return self._load_doc(_SESS_TODOS, [])
+        index = self._load_doc(self._todos_index_sess(), None)
+        if not isinstance(index, dict) or index.get("version") != 1:
+            return self._load_doc(_SESS_TODOS, [])
+
+        generation = index.get("generation")
+        chunk_count = int(index.get("chunk_count") or 0)
+        total = int(index.get("count") or 0)
+        if not generation or chunk_count <= 0:
+            return []
+
+        todos = []
+        for idx in range(chunk_count):
+            chunk = self._load_doc(self._todos_chunk_sess(generation, idx), [])
+            if isinstance(chunk, list):
+                todos.extend(chunk)
+        return todos[:total]
 
     def save_todos(self, todos: list):
-        self._save_doc(_SESS_TODOS, todos)
+        todos = list(todos or [])
+        generation = uuid.uuid4().hex
+        chunks = [
+            todos[i:i + self.TODOS_CHUNK_SIZE]
+            for i in range(0, len(todos), self.TODOS_CHUNK_SIZE)
+        ]
+        for idx, chunk in enumerate(chunks):
+            self._save_doc(self._todos_chunk_sess(generation, idx), chunk)
+        self._save_doc(self._todos_index_sess(), {
+            "version": 1,
+            "generation": generation,
+            "chunk_count": len(chunks),
+            "count": len(todos),
+        })
 
     def load_meta(self) -> dict:
         return self._load_doc(_SESS_META, dict(DEFAULT_META))
@@ -237,6 +272,7 @@ class MemoryStore(Store):
         self._save_doc(_SESS_REVIEWS, [])
         self._save_reviews([])
         self._save_doc(_SESS_TODOS, [])
+        self.save_todos([])
         self._save_doc(_SESS_META, dict(DEFAULT_META))
 
 

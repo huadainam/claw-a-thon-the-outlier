@@ -137,7 +137,7 @@ function Stars({ rating, size = 13 }) {
 /* ---------- Sidebar ---------- */
 function Sidebar({ screen, lang, setLang, t, go, activeApp, dashSection, onDashNav, collapsed, onToggleNav }) {
   const inApp = screen === "dashboard";
-  const a = activeApp && window.DATA.APPS[activeApp];
+  const a = (activeApp && window.DATA.APPS[activeApp]) || { name: activeApp || "", platform: "—" };
   const row = activeApp && window.DATA.AVAILABLE.find(r => r.app === activeApp);
   // action items belonging to THIS app that still need attention
   const openActions = window.DATA.ACTIONS.filter(x => x.status === "open" || x.status === "in_progress").length;

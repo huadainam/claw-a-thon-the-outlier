@@ -139,6 +139,16 @@ function TrendChart({ data, t, range }) {
   const barW = Math.min(34, (iw / slice.length) * 0.7);
   const gap = iw / slice.length;
   const [hover, setHover] = useState(null);
+  const bars = slice.map((d, i) => {
+    const h = (d.reviews / maxR) * ih;
+    return {
+      x: padL + gap * i + gap/2 - barW/2,
+      cx: padL + gap * i + gap / 2,
+      y: padT + ih - h,
+      h,
+      d,
+    };
+  });
 
   // health line points (0-100 mapped)
   const hMin = 0, hMax = 100;
@@ -150,10 +160,10 @@ function TrendChart({ data, t, range }) {
   const linePath = pts.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
   const areaPath = `${linePath} L${pts[pts.length-1].x} ${padT+ih} L${pts[0].x} ${padT+ih} Z`;
 
-  // Peak / trough of the health line — annotate the highest and lowest score.
-  const healthVals = pts.map(p => p.d.health);
-  const hiIdx = healthVals.indexOf(Math.max(...healthVals));
-  const loIdx = healthVals.indexOf(Math.min(...healthVals));
+  // Peak / trough annotations belong to review volume, so anchor them to bars.
+  const reviewVals = bars.map(b => b.d.reviews);
+  const hiIdx = reviewVals.indexOf(Math.max(...reviewVals));
+  const loIdx = reviewVals.indexOf(Math.min(...reviewVals));
 
   return (
     <div style={{ position:"relative" }}>
@@ -170,15 +180,13 @@ function TrendChart({ data, t, range }) {
           </linearGradient>
         </defs>
         {/* bars */}
-        {slice.map((d, i) => {
-          const h = (d.reviews / maxR) * ih;
-          const x = padL + gap * i + gap/2 - barW/2;
+        {bars.map((bar, i) => {
           const on = hover === i;
           return (
             <g key={i}>
               <rect x={padL + gap*i} y={padT} width={gap} height={ih} fill="transparent"
                 onMouseEnter={() => setHover(i)} style={{ cursor:"pointer" }}/>
-              <rect x={x} y={padT + ih - h} width={barW} height={h} rx={Math.min(5, barW/2)}
+              <rect x={bar.x} y={bar.y} width={barW} height={bar.h} rx={Math.min(5, barW/2)}
                 fill={on ? "#0071e3" : "url(#barGrad)"}
                 style={{ transition:"fill .15s", transformOrigin:`center ${padT+ih}px`,
                   animation:`barGrow .6s cubic-bezier(0.22,0.61,0.36,1) ${i*0.012}s both` }}/>
@@ -191,19 +199,18 @@ function TrendChart({ data, t, range }) {
         {pts.map((p, i) => (hover === i || range === 7) && (
           <circle key={i} cx={p.x} cy={p.y} r={hover === i ? 4.5 : 2.6} fill="#fff" stroke="#0071e3" strokeWidth="2.4"/>
         ))}
-        {/* highest / lowest health markers + labels */}
+        {/* highest / lowest review-volume markers + labels */}
         {slice.length > 1 && hover == null && [{ idx: hiIdx, hi: true }, { idx: loIdx, hi: false }].map(({ idx, hi }) => {
           if (idx < 0 || (!hi && loIdx === hiIdx)) return null;
-          const p = pts[idx];
-          const above = hi ? (p.y - 12 >= padT) : (p.y + 16 > padT + ih);
-          const ly = above ? p.y - 9 : p.y + 17;
-          const tx = Math.max(padL + 18, Math.min(W - padR - 18, p.x));
+          const bar = bars[idx];
+          const tx = Math.max(padL + 22, Math.min(W - padR - 22, bar.cx));
+          const ly = Math.max(padT + 10, bar.y - 8);
           return (
             <g key={hi ? "hi" : "lo"} style={{ pointerEvents:"none" }}>
-              <circle cx={p.x} cy={p.y} r={3.6} fill={hi ? "#0071e3" : "#8aa0b8"} stroke="#fff" strokeWidth="1.6"/>
+              <circle cx={bar.cx} cy={bar.y} r={3.2} fill={hi ? "#0071e3" : "#8aa0b8"} stroke="#fff" strokeWidth="1.6"/>
               <text x={tx} y={ly} fontSize="10.5" fontWeight="700" textAnchor="middle"
                 fill={hi ? "#0071e3" : "var(--text-3)"}>
-                {(hi ? t("trend_high") : t("trend_low"))} {p.d.health}
+                {(hi ? t("trend_high") : t("trend_low"))} {bar.d.reviews.toLocaleString()}
               </text>
             </g>
           );

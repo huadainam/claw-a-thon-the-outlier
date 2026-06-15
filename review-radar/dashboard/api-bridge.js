@@ -129,11 +129,18 @@
     };
   }
 
-  function isZaloPay(entry) {
+  function zaloPayRank(entry) {
     var id = String(entry.app || entry.app_id || '').toLowerCase();
+    var asId = String(entry.as_id || '').toLowerCase();
+    var gpId = String(entry.gp_id || '').toLowerCase();
     var spec = window.DATA.APPS[entry.app || entry.app_id] || {};
     var name = String(entry.title || spec.name || '').toLowerCase();
-    return id === '1112407590' || id.indexOf('zalopay') >= 0 || name.indexOf('zalopay') >= 0;
+    var merchantId = 'vn.com.vng.zalopay.mep.merchant';
+    var isMerchant = id === merchantId || gpId === merchantId || asId === '1444720973' ||
+      (name.indexOf('zalopay') >= 0 && name.indexOf('merchant') >= 0);
+    if (id === '1112407590' || asId === '1112407590' ||
+        (name.indexOf('zalopay') >= 0 && !isMerchant)) return 0;
+    return isMerchant ? 1 : 2;
   }
 
   function appName(entry) {
@@ -147,11 +154,11 @@
     return entry.hourly_refresh_enabled === true;
   }
 
-  // Gallery order: Zalopay first → apps with refresh ON → alphabetical.
+  // Gallery order: Zalopay consumer → ZaloPay Merchant → refresh ON → alphabetical.
   function sortAppsForGallery(items) {
     return (items || []).slice().sort(function(a, b) {
-      var az = isZaloPay(a), bz = isZaloPay(b);
-      if (az !== bz) return az ? -1 : 1;
+      var az = zaloPayRank(a), bz = zaloPayRank(b);
+      if (az !== bz) return az - bz;
       var ar = isRefreshOn(a), br = isRefreshOn(b);
       if (ar !== br) return ar ? -1 : 1;
       return appName(a).localeCompare(appName(b), 'vi', { sensitivity: 'base' });

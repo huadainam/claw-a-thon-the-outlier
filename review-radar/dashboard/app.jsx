@@ -28,11 +28,39 @@ function buildCrawlToastSub(dict, appRow) {
   return dict.toast_no_reviews_fetched || dict.toast_scrape_done;
 }
 
+const ROUTE_STORAGE_KEY = "arm_route_v1";
+const VALID_SCREENS = ["selection", "crawling", "dashboard", "reports", "compare", "team", "settings"];
+const VALID_DASH_VIEWS = ["overview", "actions", "reviews"];
+
+function readSavedRoute() {
+  try {
+    const raw = localStorage.getItem(ROUTE_STORAGE_KEY);
+    if (!raw) return {};
+    const route = JSON.parse(raw);
+    const screen = VALID_SCREENS.includes(route.screen) ? route.screen : "selection";
+    const dashView = VALID_DASH_VIEWS.includes(route.dashView) ? route.dashView : "overview";
+    return {
+      screen,
+      activeApp: route.activeApp ? String(route.activeApp) : null,
+      dashView,
+    };
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveRoute(route) {
+  try {
+    localStorage.setItem(ROUTE_STORAGE_KEY, JSON.stringify(route));
+  } catch (_) {}
+}
+
 function App() {
+  const [savedRoute] = useState(() => readSavedRoute());
   const [lang, setLang] = useState(() => localStorage.getItem("arm_lang") || "vi");
   const [screen, setScreen] = useState("initializing");
-  const [activeApp, setActiveApp] = useState(null);
-  const [dashView, setDashView] = useState("overview");
+  const [activeApp, setActiveApp] = useState(savedRoute.activeApp || null);
+  const [dashView, setDashView] = useState(savedRoute.dashView || "overview");
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
   const [availVersion, setAvailVersion] = useState(0);  // bumps when app statuses refresh
@@ -43,6 +71,10 @@ function App() {
 
   useEffect(() => { localStorage.setItem("arm_lang", lang); }, [lang]);
   useEffect(() => { localStorage.removeItem("arm_nav"); }, []);
+  useEffect(() => {
+    if (screen === "initializing") return;
+    saveRoute({ screen, activeApp, dashView });
+  }, [screen, activeApp, dashView]);
 
   const dismissToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
   const isBusyStatus = (status) => status === "analyzing" || status === "queued";
@@ -92,14 +124,37 @@ function App() {
     return () => { cancelled = true; clearTimeout(timer); };
   }, []);
 
-  // Init: always land on the app gallery. The backend may still have an active
-  // app for scheduled crawls, but the first screen should be "all available apps"
-  // so users can choose what they want to inspect.
+  // Init: restore the user's last screen in this browser. The backend's active
+  // app is still used as a fallback, but F5 should keep users where they were.
   useEffect(() => {
-    window.ARM_Bridge.init().then(({ appId }) => {
-      if (appId) setActiveApp(appId);
+    const restore = (fallbackAppId, apps) => {
+      const screenToRestore = savedRoute.screen || "selection";
+      const savedAppExists = savedRoute.activeApp && (!apps || apps.some(a => a.app_id === savedRoute.activeApp));
+      const appToRestore = savedAppExists ? savedRoute.activeApp : fallbackAppId;
+
+      if (screenToRestore === "dashboard" && appToRestore) {
+        setActiveApp(appToRestore);
+        setScreen("dashboard");
+        loadDashboardWithRetry(appToRestore).catch(console.warn);
+        return;
+      }
+      if (screenToRestore === "crawling" && appToRestore) {
+        setActiveApp(appToRestore);
+        setScreen("crawling");
+        return;
+      }
+      if (["reports", "compare", "team", "settings"].includes(screenToRestore)) {
+        if (appToRestore) setActiveApp(appToRestore);
+        setScreen(screenToRestore);
+        return;
+      }
+      if (appToRestore) setActiveApp(appToRestore);
       setScreen("selection");
-    }).catch(() => setScreen("selection"));
+    };
+
+    window.ARM_Bridge.init().then(({ appId, apps }) => {
+      restore(appId, apps);
+    }).catch(() => restore(savedRoute.activeApp, null));
   }, []);
 
   const t = useMemo(() => {

@@ -1,4 +1,4 @@
-# Review Radar - The Outliers
+# Review Radar - The Outlier
 
 Review Radar là công cụ AI giúp team product và engineering đọc hiểu review ứng
 dụng nhanh hơn. Hệ thống thu thập review từ App Store và Google Play, dùng LLM
